@@ -1,8 +1,12 @@
 buildscript {
-    ext.kotlin_version = '1.0.0-beta-+'
+    ext.kotlin_version = '1.0.0-rc-+'
 
     repositories {
         jcenter()
+
+        maven {
+            url = 'https://dl.bintray.com/kotlin/kotlin-eap'
+        }
     }
 
     dependencies {
@@ -34,7 +38,7 @@ dependencies {
 dokka {
     linkMapping {
         dir = "src/main/kotlin"
-        url = "https://github.com/JetBrains-Research/knpy/blob/master/src/main/kotlin"
+        url = "https://github.com/JetBrains-Research/npy/blob/master/src/main/kotlin"
         suffix = "#L"
     }
 }
@@ -67,7 +71,7 @@ bintray {
     publications = ['mavenJava']
     pkg {
         repo = 'maven'
-        name = 'knpy'
+        name = 'npy'
         userOrg = "jetbrains-research"
         licenses = ['MIT']
         version {

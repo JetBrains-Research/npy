@@ -16,7 +16,7 @@ import kotlin.test.assertEquals
  *              x_i8=np.array([1, 2, 3, 4, 65536], dtype="<i8"),
  *              x_f4=np.array([1, 2, 3, 4], dtype="<f4"),
  *              x_f8=np.array([1, 2, 3, 4], dtype="<f8"),
- *              x_b=np.array([True, True, True, False], dtype="|b"),
+ *              x_b=np.array([True, True, True, False], dtype="|b1"),
  *              x_S3=np.array(["aha", "hah"], dtype="|S3"))
  *
  * NumPy version 1.10.2.
