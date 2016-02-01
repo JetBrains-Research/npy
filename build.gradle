@@ -1,0 +1,81 @@
+buildscript {
+    ext.kotlin_version = '1.0.0-beta-+'
+
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "org.jetbrains.dokka:dokka-gradle-plugin:0.9.4"
+    }
+}
+
+plugins {
+    id 'com.jfrog.bintray' version '1.2'
+}
+
+apply plugin: 'org.jetbrains.dokka'
+apply plugin: 'kotlin'
+apply plugin: 'maven-publish'
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    compile 'com.google.guava:guava:19.0'
+
+    testCompile "org.jetbrains.kotlin:kotlin-test:$kotlin_version"
+    testCompile 'junit:junit:4.+'
+}
+
+dokka {
+    linkMapping {
+        dir = "src/main/kotlin"
+        url = "https://github.com/JetBrains-Research/knpy/blob/master/src/main/kotlin"
+        suffix = "#L"
+    }
+}
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+artifacts {
+    archives sourcesJar
+}
+
+publishing {
+    group = groupId
+    version = project.version
+
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+
+            artifact sourcesJar
+        }
+    }
+}
+
+bintray {
+    user = project.hasProperty('bintrayUser') ? project.bintrayUser : System.getenv('BINTRAY_USER')
+    key = project.hasProperty('bintrayKey') ? project.bintrayKey : System.getenv('BINTRAY_KEY')
+    publications = ['mavenJava']
+    pkg {
+        repo = 'maven'
+        name = 'knpy'
+        userOrg = "jetbrains-research"
+        licenses = ['MIT']
+        version {
+            name = project.version.toString()
+        }
+    }
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.5'
+}
