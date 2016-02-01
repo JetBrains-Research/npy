@@ -50,4 +50,16 @@ class NpzFileTest {
             assertArrayEquals(arrayOf("aha", "hah"), npzf["x_S3"] as Array<String>)
         }
     }
+
+    @Test fun builder() {
+        withTempFile("test", ".npz") { path ->
+            val builder = NpzFile.Builder(path)
+            builder.add("x_b", booleanArrayOf(true, true, true, false))
+        }
+
+        NpzFile(Examples["example.npz"]).use { npzf ->
+            assertArrayEquals(booleanArrayOf(true, true, true, false),
+                    npzf["x_b"] as BooleanArray)
+        }
+    }
 }

@@ -1,5 +1,6 @@
 package org.jetbrains.bio.npy
 
+import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -9,5 +10,15 @@ internal object Examples {
                   ?: throw IllegalStateException("resource not found")
 
         return Paths.get(url.toURI()).toFile().toPath()
+    }
+}
+
+internal inline fun withTempFile(prefix: String, suffix: String,
+                                 block: (Path) -> Unit) {
+    val path = Files.createTempFile(prefix, suffix)
+    try {
+        block(path)
+    } finally {
+        Files.delete(path)
     }
 }

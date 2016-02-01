@@ -2,7 +2,8 @@ package org.jetbrains.bio.npy
 
 import com.google.common.base.CharMatcher
 import com.google.common.base.Splitter
-import java.io.DataInputStream
+import java.io.DataInput
+import java.io.DataOutput
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.*
@@ -14,14 +15,29 @@ import java.util.*
  */
 class NpyFile {
     /** NPY file header. */
-    internal data class Header(val major: Int, val minor: Int,
-                               val order: ByteOrder?,
+    internal data class Header(val major: Int = 1, val minor: Int = 0,
+                               val order: ByteOrder? = ByteOrder.nativeOrder(),
                                val type: Char, val bytes: Int,
                                val shape: IntArray) {
+        fun write(output: DataOutput) = with(output) {
+            write(MAGIC)
+            write(1)  // major.
+            write(0)  // minor.
+
+            val meta = ("{'descr': '${order.toChar()}$type$bytes'," +
+                        " 'fortran_order': False," +
+                        " 'shape': (${shape.joinToString(",")})," +
+                        " }").toByteArray(Charsets.US_ASCII)
+
+            write(meta.size and 255)
+            write((meta.size shl 8) and 255)
+            write(meta)
+        }
+
         companion object {
             private val MAGIC = byteArrayOf(0x93.toByte()) + "NUMPY".toByteArray()
 
-            fun read(input: DataInputStream) = with(input) {
+            fun read(input: DataInput) = with(input) {
                 val buf = ByteArray(6)
                 readFully(buf)
                 check(Arrays.equals(MAGIC, buf)) { "bad magic: ${String(buf)}" }
@@ -63,7 +79,7 @@ class NpyFile {
     }
 
     companion object {
-        fun read(input: DataInputStream): Any {
+        fun read(input: DataInput): Any {
             val header = Header.read(input)
             val (size) = header.shape
             val buf = ByteArray(header.bytes * size).run {
@@ -81,12 +97,12 @@ class NpyFile {
                     2 -> ShortArray(size).apply { buf.asShortBuffer().get(this) }
                     4 -> IntArray(size).apply { buf.asIntBuffer().get(this) }
                     8 -> LongArray(size).apply { buf.asLongBuffer().get(this) }
-                    else -> TODO()
+                    else -> error("invalid number of bytes for ${header.type}: ${header.bytes}")
                 }
                 'f' -> when (header.bytes) {
                     4 -> FloatArray(size).apply { buf.asFloatBuffer().get(this) }
                     8 -> DoubleArray(size).apply { buf.asDoubleBuffer().get(this) }
-                    else -> TODO()
+                    else -> error("invalid number of bytes for ${header.type}: ${header.bytes}")
                 }
                 'S' -> Array(size) {
                     val s = ByteArray(header.bytes)
@@ -96,6 +112,66 @@ class NpyFile {
                 else -> error("unsupported type: ${header.type}")
             }
         }
+
+        fun write(output: DataOutput, data: BooleanArray) {
+            Header(order = null, type = 'b', bytes = 1, shape = intArrayOf(data.size))
+                    .write(output)
+
+            data.forEach { output.writeBoolean(it) }
+        }
+
+        fun write(output: DataOutput, data: ByteArray) {
+            Header(type = 'i', bytes = 1, shape = intArrayOf(data.size))
+                    .write(output)
+
+            data.forEach { output.write(it.toInt()) }
+        }
+
+        fun write(output: DataOutput, data: ShortArray) {
+            Header(type = 'i', bytes = 2, shape = intArrayOf(data.size))
+                    .write(output)
+
+            data.forEach { output.writeShort(it.toInt()) }
+        }
+
+        fun write(output: DataOutput, data: IntArray) {
+            Header(type = 'i', bytes = 4, shape = intArrayOf(data.size))
+                    .write(output)
+
+            data.forEach { output.writeInt(it) }
+        }
+
+        fun write(output: DataOutput, data: LongArray) {
+            Header(type = 'i', bytes = 8, shape = intArrayOf(data.size))
+                    .write(output)
+
+            data.forEach { output.writeLong(it) }
+        }
+
+        fun write(output: DataOutput, data: FloatArray) {
+            Header(type = 'f', bytes = 4, shape = intArrayOf(data.size))
+                    .write(output)
+
+            data.forEach { output.writeFloat(it) }
+        }
+
+        fun write(output: DataOutput, data: DoubleArray) {
+            Header(type = 'f', bytes = 8, shape = intArrayOf(data.size))
+                    .write(output)
+
+            data.forEach { output.writeDouble(it) }
+        }
+
+        fun write(output: DataOutput, data: Array<String>) {
+            val bytes = data.asSequence().map { it.length }.min() ?: 0
+            Header(order = null, type = 'f', bytes = bytes, shape = intArrayOf(data.size))
+                    .write(output)
+
+            data.forEach {
+                it.toByteArray()
+                output.write(it.toByteArray(Charsets.US_ASCII).copyOf(bytes))
+            }
+        }
     }
 }
 
@@ -103,5 +179,12 @@ private fun Char.toByteOrder() = when (this) {
     '<'  -> ByteOrder.LITTLE_ENDIAN
     '>'  -> ByteOrder.BIG_ENDIAN
     '|'  -> null
+    else -> error(this)
+}
+
+private fun ByteOrder?.toChar() = when (this) {
+    ByteOrder.LITTLE_ENDIAN -> '<'
+    ByteOrder.BIG_ENDIAN -> '>'
+    null -> '|'
     else -> error(this)
 }
