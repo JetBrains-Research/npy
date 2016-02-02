@@ -1,11 +1,9 @@
 package org.jetbrains.bio.npy
 
-import java.io.Closeable
-import java.io.DataInputStream
-import java.io.DataOutputStream
-import java.io.File
+import java.io.*
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.zip.Deflater
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
@@ -32,52 +30,48 @@ data class NpzFile(val path: Path) : Closeable, AutoCloseable {
      */
     operator fun get(name: String): Any {
         return zf.getInputStream(zf.getEntry(name + ".npy")).use {
-            NpyFile.read(DataInputStream(it))
+            NpyFile.read(DataInputStream(it.buffered()))
         }
     }
 
     override fun close() = zf.close()
 
-    class Builder(val path: Path): Closeable, AutoCloseable {
-        private val zos = ZipOutputStream(Files.newOutputStream(path))
+    class Builder(val path: Path,
+                  compression: Int = Deflater.NO_COMPRESSION)
+    :
+            Closeable, AutoCloseable {
 
-        fun add(name: String, data: BooleanArray) = withEntry(name) {
-            NpyFile.write(DataOutputStream(zos), data)
+        private val zos = ZipOutputStream(Files.newOutputStream(path).buffered(),
+                                          Charsets.US_ASCII)
+
+        init {
+            zos.setLevel(compression)
         }
 
-        fun add(name: String, data: ByteArray) = withEntry(name) {
-            NpyFile.write(DataOutputStream(zos), data)
-        }
+        fun add(name: String, data: BooleanArray) = withEntry(name) { NpyFile.write(it, data) }
 
-        fun add(name: String, data: ShortArray) = withEntry(name) {
-            NpyFile.write(DataOutputStream(zos), data)
-        }
+        fun add(name: String, data: ByteArray) = withEntry(name) { NpyFile.write(it, data) }
 
-        fun add(name: String, data: IntArray) = withEntry(name) {
-            NpyFile.write(DataOutputStream(zos), data)
-        }
+        fun add(name: String, data: ShortArray) = withEntry(name) { NpyFile.write(it, data) }
 
-        fun add(name: String, data: LongArray) = withEntry(name) {
-            NpyFile.write(DataOutputStream(zos), data)
-        }
+        fun add(name: String, data: IntArray) = withEntry(name) { NpyFile.write(it, data) }
 
-        fun add(name: String, data: FloatArray) = withEntry(name) {
-            NpyFile.write(DataOutputStream(zos), data)
-        }
+        fun add(name: String, data: LongArray) = withEntry(name) { NpyFile.write(it, data) }
 
-        fun add(name: String, data: DoubleArray) = withEntry(name) {
-            NpyFile.write(DataOutputStream(zos), data)
-        }
+        fun add(name: String, data: FloatArray) = withEntry(name) { NpyFile.write(it, data) }
 
-        fun add(name: String, data: Array<String>) = withEntry(name) {
-            NpyFile.write(DataOutputStream(zos), data)
-        }
+        fun add(name: String, data: DoubleArray) = withEntry(name) { NpyFile.write(it, data) }
 
-        private inline fun withEntry(name: String, block: () -> Unit) {
+        fun add(name: String, data: Array<String>) = withEntry(name) { NpyFile.write(it, data) }
+
+        private inline fun withEntry(name: String, block: (DataOutput) -> Unit) {
             val entry = ZipEntry(name + ".npy")
-            zos.putNextEntry(entry)
-            block()
-            zos.closeEntry()
+            try {
+                zos.putNextEntry(entry)
+                block(DataOutputStream(zos))
+            } finally {
+                zos.closeEntry()
+            }
         }
 
         override fun close() = zos.close()

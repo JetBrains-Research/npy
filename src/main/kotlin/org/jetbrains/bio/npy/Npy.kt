@@ -33,6 +33,8 @@ class NpyFile {
      * The difference between the two is the maximum size of the NPY header.
      * Version 1.0 requires it to be <=2**16 while version 2.0 allows <=2**32.
      *
+     * TODO: honor byte order in `#write`.
+     *
      * By default a more common 1.0 format is used.
      */
     internal data class Header(val major: Int = 1, val minor: Int = 0,
