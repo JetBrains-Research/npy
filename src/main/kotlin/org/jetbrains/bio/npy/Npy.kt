@@ -3,6 +3,7 @@ package org.jetbrains.bio.npy
 import com.google.common.base.CharMatcher
 import com.google.common.base.Charsets
 import com.google.common.base.Splitter
+import com.google.common.base.Strings
 import com.google.common.primitives.Ints
 import com.google.common.primitives.Shorts
 import java.io.DataInput
@@ -50,8 +51,20 @@ class NpyFile {
             write(minor)
 
             val descr = "${order.toChar()}$type$bytes"
-            val meta = "{'descr': '$descr', 'fortran_order': False, 'shape': (${shape.joinToString(",")}), }"
+            val metaUnpadded =
+                    "{'descr': '$descr', 'fortran_order': False, 'shape': (${shape.joinToString(",")}), }\n"
+
+            // According to the spec the total header size should be
+            // evenly divisible by 16 for alignment purposes.
+            val total = MAGIC.size + 2 + when (major to minor) {
+                1 to 0 -> 2
+                2 to 0 -> 4
+                else -> TODO()
+            } + metaUnpadded.length
+
+            val meta = Strings.padEnd(metaUnpadded, total + total % 16, ' ')
                     .toByteArray(Charsets.US_ASCII)
+
             when (major to minor) {
                 1 to 0 -> {
                     check(meta.size <= Short.MAX_VALUE)
