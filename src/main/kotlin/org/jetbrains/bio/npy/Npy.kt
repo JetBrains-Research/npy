@@ -17,8 +17,16 @@ import java.util.*
  * See http://docs.scipy.org/doc/numpy-dev/neps/npy-format.html
  */
 class NpyFile {
-    /** NPY file header. */
-    internal data class Header(val major: Int = 2, val minor: Int = 0,
+    /**
+     * NPY file header.
+     *
+     * Presently NumPy implements two version of the NPY format: 1.0 and 2.0.
+     * The difference between the two is the maximum size of the NPY header.
+     * Version 1.0 requires it to be <=2**16 while version 2.0 allows <=2**32.
+     *
+     * By default a more common 1.0 format is used.
+     */
+    internal data class Header(val major: Int = 1, val minor: Int = 0,
                                val order: ByteOrder? = ByteOrder.nativeOrder(),
                                val type: Char, val bytes: Int,
                                val shape: IntArray) {
