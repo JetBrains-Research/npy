@@ -1,7 +1,10 @@
 package org.jetbrains.bio.npy
 
 import com.google.common.base.CharMatcher
+import com.google.common.base.Charsets
 import com.google.common.base.Splitter
+import com.google.common.primitives.Ints
+import com.google.common.primitives.Shorts
 import java.io.DataInput
 import java.io.DataOutput
 import java.nio.ByteBuffer
@@ -15,24 +18,56 @@ import java.util.*
  */
 class NpyFile {
     /** NPY file header. */
-    internal data class Header(val major: Int = 1, val minor: Int = 0,
+    internal data class Header(val major: Int = 2, val minor: Int = 0,
                                val order: ByteOrder? = ByteOrder.nativeOrder(),
                                val type: Char, val bytes: Int,
                                val shape: IntArray) {
+        init {
+            require((major == 1 || major == 2) && minor == 0) {
+                "version must be 1.0 or 2.0"
+            }
+        }
+
         fun write(output: DataOutput) = with(output) {
             write(MAGIC)
-            write(1)  // major.
-            write(0)  // minor.
+            write(major)
+            write(minor)
 
-            val meta = ("{'descr': '${order.toChar()}$type$bytes'," +
-                        " 'fortran_order': False," +
-                        " 'shape': (${shape.joinToString(",")})," +
-                        " }").toByteArray(Charsets.US_ASCII)
+            val descr = "${order.toChar()}$type$bytes"
+            val meta = "{'descr': '$descr', 'fortran_order': False, 'shape': (${shape.joinToString(",")}), }"
+                    .toByteArray(Charsets.US_ASCII)
+            when (major to minor) {
+                1 to 0 -> {
+                    check(meta.size <= Short.MAX_VALUE)
+                    val (b0, b1) = Shorts.toByteArray(meta.size.toShort())
+                    writeByte(b1.toInt())
+                    writeByte(b0.toInt())
+                }
+                2 to 0 -> {
+                    val (b0, b1, b2, b3) = Ints.toByteArray(meta.size)
+                    writeByte(b3.toInt())
+                    writeByte(b2.toInt())
+                    writeByte(b1.toInt())
+                    writeByte(b0.toInt())
+                }
+            }
 
-            write(meta.size and 255)
-            write((meta.size shl 8) and 255)
             write(meta)
         }
+
+        override fun equals(other: Any?) = when {
+            this === other -> true
+            other == null || other !is Header -> false
+            else -> {
+                major == other.major && minor == other.minor &&
+                order == other.order &&
+                type == other.type && bytes == other.bytes &&
+                Arrays.equals(shape, other.shape)
+            }
+        }
+
+        override fun hashCode() = Objects.hash(major, minor, order, type, bytes,
+                                               Arrays.hashCode(shape))
 
         companion object {
             private val MAGIC = byteArrayOf(0x93.toByte()) + "NUMPY".toByteArray()
@@ -46,19 +81,26 @@ class NpyFile {
                 val minor = readUnsignedByte()
 
                 // XXX we can't use 'DataInput' here because it's big endian.
-                val b0 = readUnsignedByte()
-                val b1 = readUnsignedByte()
-                val size = ((b1 and 0xFF) shl 8) or (b0 and 0xFF)
+                val b0 = readByte()
+                val b1 = readByte()
+                val size = when (major to minor) {
+                    1 to 0 -> Shorts.fromBytes(b1, b0).toInt()
+                    2 to 0 -> {
+                        val b2 = readByte()
+                        val b3 = readByte()
+                        Ints.fromBytes(b3, b2, b1, b0)
+                    }
+                    else -> error("unsupported version: $major.$minor")
+                }
+
                 val header = ByteArray(size)
                 readFully(header)
-
 
                 val normalized = CharMatcher.WHITESPACE.or(CharMatcher.anyOf("'{}()"))
                         .removeFrom(String(header, Charsets.US_ASCII).trimEnd(','))
                 val meta = Splitter.on(',').omitEmptyStrings()
                         .withKeyValueSeparator(':')
                         .split(normalized)
-
 
                 val dtype = meta["descr"]!!
                 check(!meta["fortran_order"]!!.toBoolean()) {
