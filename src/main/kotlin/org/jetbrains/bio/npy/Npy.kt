@@ -14,6 +14,14 @@ import java.util.*
 /**
  * A file in NPY format.
  *
+ * Currently unsupported types:
+ * * bit field,
+ * * complex,
+ * * object,
+ * * Unicode
+ * * void*
+ * * intersections aka types for structured arrays.
+ *
  * See http://docs.scipy.org/doc/numpy-dev/neps/npy-format.html
  */
 class NpyFile {

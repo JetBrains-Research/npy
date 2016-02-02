@@ -80,12 +80,11 @@ data class NpzFile(val path: Path) : Closeable, AutoCloseable {
             zos.closeEntry()
         }
 
-        override fun close() {
-            zos.close()
-        }
+        override fun close() = zos.close()
     }
 
     companion object {
+        /** Creates an NPZ file at [path] and populates it from a closure. */
         inline fun create(path: Path, block: Builder.() -> Unit) {
             Builder(path).use { it.apply(block) }
         }
