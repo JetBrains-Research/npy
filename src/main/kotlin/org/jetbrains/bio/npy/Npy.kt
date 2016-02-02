@@ -49,8 +49,8 @@ class NpyFile {
 
         fun write(output: DataOutput) = with(output) {
             write(MAGIC)
-            write(major)
-            write(minor)
+            writeByte(major)
+            writeByte(minor)
 
             val descr = "${order.toChar()}$type$bytes"
             val metaUnpadded =
