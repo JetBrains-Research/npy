@@ -7,6 +7,10 @@ import com.google.common.base.Strings
 import com.google.common.primitives.*
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.nio.channels.FileChannel
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.StandardOpenOption
 import java.util.*
 
 /**
@@ -14,6 +18,7 @@ import java.util.*
  *
  * Currently unsupported types:
  *
+ *   * unsigned integral types (treated as signed)
  *   * bit field,
  *   * complex,
  *   * object,
@@ -111,7 +116,7 @@ class NpyFile {
 
         companion object {
             /** Each NPY file *must* start with this byte sequence. */
-            internal val MAGIC = byteArrayOf(0x93.toByte()) + "NUMPY".toByteArray()
+            val MAGIC = byteArrayOf(0x93.toByte()) + "NUMPY".toByteArray()
 
             fun read(input: ByteBuffer) = with(input.order(ByteOrder.LITTLE_ENDIAN)) {
                 val buf = ByteArray(6)
@@ -154,7 +159,17 @@ class NpyFile {
     }
 
     companion object {
-        fun read(input: ByteBuffer): Any {
+        /**
+         * Reads an array in NPY format from a given path.
+         *
+         * The caller is responsible for casting the resulting array to an
+         * appropriate type.
+         */
+        @JvmStatic fun read(path: Path): Any = FileChannel.open(path).use {
+            read(it.map(FileChannel.MapMode.READ_ONLY, 0, Files.size(path)))
+        }
+
+        internal fun read(input: ByteBuffer): Any {
             val header = Header.read(input)
             val (size) = header.shape
             check(input.remaining() == header.bytes * size)
@@ -186,7 +201,37 @@ class NpyFile {
             }
         }
 
-        fun allocate(data: BooleanArray): ByteBuffer {
+        /**
+         * Writes an array in NPY format to a given path.
+         */
+        @JvmStatic fun write(path: Path, data: BooleanArray) = write(path, allocate(data))
+
+        @JvmStatic fun write(path: Path, data: ByteArray) = write(path, allocate(data))
+
+        @JvmStatic fun write(path: Path, data: ShortArray) = write(path, allocate(data))
+
+        @JvmStatic fun write(path: Path, data: IntArray) = write(path, allocate(data))
+
+        @JvmStatic fun write(path: Path, data: LongArray) = write(path, allocate(data))
+
+        @JvmStatic fun write(path: Path, data: FloatArray) = write(path, allocate(data))
+
+        @JvmStatic fun write(path: Path, data: DoubleArray) = write(path, allocate(data))
+
+        @JvmStatic fun write(path: Path, data: Array<String>) = write(path, allocate(data))
+
+        private fun write(path: Path, output: ByteBuffer) {
+            FileChannel.open(path,
+                             StandardOpenOption.WRITE,
+                             StandardOpenOption.CREATE).use {
+                output.rewind()
+                while (output.hasRemaining()) {
+                    it.write(output)
+                }
+            }
+        }
+
+        internal fun allocate(data: BooleanArray): ByteBuffer {
             val header = Header(order = null, type = 'b', bytes = 1,
                                 shape = intArrayOf(data.size))
             return header.allocate().apply {
@@ -194,44 +239,44 @@ class NpyFile {
             }
         }
 
-        fun allocate(data: ByteArray): ByteBuffer {
+        internal fun allocate(data: ByteArray): ByteBuffer {
             return Header(type = 'i', bytes = 1, shape = intArrayOf(data.size))
                     .allocate().put(data)
         }
 
-        fun allocate(data: ShortArray): ByteBuffer {
+        internal fun allocate(data: ShortArray): ByteBuffer {
             return Header(type = 'i', bytes = Shorts.BYTES,
                           shape = intArrayOf(data.size))
                     .allocate().apply { asShortBuffer().put(data) }
         }
 
-        fun allocate(data: IntArray): ByteBuffer {
+        internal fun allocate(data: IntArray): ByteBuffer {
             return Header(type = 'i', bytes = Ints.BYTES,
                           shape = intArrayOf(data.size))
                     .allocate().apply { asIntBuffer().put(data) }
         }
 
-        fun allocate(data: LongArray): ByteBuffer {
+        internal fun allocate(data: LongArray): ByteBuffer {
             return Header(type = 'i', bytes = Longs.BYTES,
                           shape = intArrayOf(data.size))
                     .allocate().apply { asLongBuffer().put(data) }
         }
 
-        fun allocate(data: FloatArray): ByteBuffer {
+        internal fun allocate(data: FloatArray): ByteBuffer {
             return Header(type = 'f', bytes = Floats.BYTES,
                           shape = intArrayOf(data.size))
                     .allocate().apply { asFloatBuffer().put(data) }
         }
 
-        fun allocate(data: DoubleArray): ByteBuffer {
+        internal fun allocate(data: DoubleArray): ByteBuffer {
             return Header(type = 'f', bytes = Doubles.BYTES,
                           shape = intArrayOf(data.size))
                     .allocate().apply { asDoubleBuffer().put(data) }
         }
 
-        fun allocate(data: Array<String>): ByteBuffer {
+        internal fun allocate(data: Array<String>): ByteBuffer {
             val bytes = data.asSequence().map { it.length }.min() ?: 0
-            val header = Header(order = null, type = 'f', bytes = bytes,
+            val header = Header(order = null, type = 'S', bytes = bytes,
                                 shape = intArrayOf(data.size))
             return header.allocate().apply {
                 data.forEach {

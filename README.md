@@ -21,5 +21,19 @@ dependencies {
 
 ```
 
+Limitations
+-----------
+
+The implementation is rather minimal at the moment. Specifically it does
+**not** support the following types:
+
+* unsigned integral types (treated as signed),
+* bit field,
+* complex,
+* object,
+* Unicode
+* void*
+* intersections aka types for structured arrays.
+
 [jcenter]: https://bintray.com/bintray/jcenter
 [npy]: http://docs.scipy.org/doc/numpy-dev/neps/npy-format.html

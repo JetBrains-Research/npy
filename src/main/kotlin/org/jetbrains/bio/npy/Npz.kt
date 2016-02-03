@@ -19,7 +19,6 @@ import java.util.zip.ZipOutputStream
  * accessibly via "X" and **not** "X.npy".
  */
 data class NpzFile(val path: Path) : Closeable, AutoCloseable {
-
     private val zf = ZipFile(path.toFile(), ZipFile.OPEN_READ, Charsets.US_ASCII)
 
     /** Lists arrays available in a file. */
@@ -105,7 +104,8 @@ data class NpzFile(val path: Path) : Closeable, AutoCloseable {
 
     companion object {
         /** Creates an NPZ file at [path] and populates it from a closure. */
-        fun create(path: Path, compressed: Boolean = false, block: Writer.() -> Unit) {
+        @JvmStatic fun create(path: Path, compressed: Boolean = false,
+                              block: Writer.() -> Unit) {
             Writer(path, compressed).use { it.apply(block) }
         }
     }
