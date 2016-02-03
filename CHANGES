@@ -9,6 +9,7 @@ Version 0.2.0
 - Unified reading and writing API of 'NpzFile'.
 - Added 'NpzFile.Reader#introspect' for exploring the metadata of an
   NPZ file without reading whole arrays.
+- Fixed 'NpyFile' behaviour for arrays with strings of different lengths.
 
 Version 0.1.0
 -------------

@@ -194,7 +194,7 @@ class NpyFile {
                     'S' -> Array(size) {
                         val s = ByteArray(header.bytes)
                         get(s)
-                        String(s, Charsets.US_ASCII)
+                        String(s, Charsets.US_ASCII).trim { it == '\u0000' }
                     }
                     else -> error("unsupported type: ${header.type}")
                 }
@@ -275,7 +275,7 @@ class NpyFile {
         }
 
         internal fun allocate(data: Array<String>): ByteBuffer {
-            val bytes = data.asSequence().map { it.length }.min() ?: 0
+            val bytes = data.asSequence().map { it.length }.max() ?: 0
             val header = Header(order = null, type = 'S', bytes = bytes,
                                 shape = intArrayOf(data.size))
             return header.allocate().apply {

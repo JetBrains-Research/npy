@@ -53,7 +53,7 @@ class NpyFileTest {
     }
 
     @Test fun testWriteReadStrings() = withTempFile("test", ".npy") { path ->
-        val data = arrayOf("foo", "bar", "baz")
+        val data = arrayOf("foo", "bar", "bazooka")
         NpyFile.write(path, data)
         assertArrayEquals(data, NpyFile.read(path) as Array<String>)
     }
