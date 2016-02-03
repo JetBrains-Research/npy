@@ -13,12 +13,13 @@ import java.util.*
  * A file in NPY format.
  *
  * Currently unsupported types:
- * * bit field,
- * * complex,
- * * object,
- * * Unicode
- * * void*
- * * intersections aka types for structured arrays.
+ *
+ *   * bit field,
+ *   * complex,
+ *   * object,
+ *   * Unicode
+ *   * void*
+ *   * intersections aka types for structured arrays.
  *
  * See http://docs.scipy.org/doc/numpy-dev/neps/npy-format.html
  */
@@ -55,7 +56,9 @@ class NpyFile {
                 else -> TODO()
             } + metaUnpadded.length
 
-            Strings.padEnd(metaUnpadded, metaUnpadded.length + totalUnpadded % 16, ' ')
+            Strings.padEnd(metaUnpadded,
+                           metaUnpadded.length + (16 - totalUnpadded % 16),
+                           ' ')
                     .toByteArray(Charsets.US_ASCII)
         }
 

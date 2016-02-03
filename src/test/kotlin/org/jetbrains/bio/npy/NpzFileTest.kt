@@ -2,9 +2,6 @@ package org.jetbrains.bio.npy
 
 import org.junit.Assert.assertArrayEquals
 import org.junit.Test
-import java.io.RandomAccessFile
-import java.nio.channels.FileChannel
-import java.nio.file.Files
 import kotlin.test.assertEquals
 
 /**
@@ -65,29 +62,6 @@ class NpzFileTest {
                 assertArrayEquals(booleanArrayOf(true, true, true, false),
                                   npzf["x_b"] as BooleanArray)
                 assertArrayEquals(intArrayOf(1, 2, 3, 4), npzf["x_i4"] as IntArray)
-            }
-        }
-    }
-}
-
-class NpzFileHeaderTest {
-    @Test fun writeRead10() = testWriteRead(1, 0)
-
-    @Test fun writeRead20() = testWriteRead(2, 0)
-
-    fun testWriteRead(major: Int, minor: Int) {
-        withTempFile("test", ".npz") { path ->
-            val header = NpyFile.Header(major = major, minor = minor,
-                                        type = 'i', bytes = 4,
-                                        shape = intArrayOf(42))
-
-            RandomAccessFile(path.toFile(), "rw").use {
-                it.write(header.allocate().array())
-            }
-
-            FileChannel.open(path).use {
-                val input = it.map(FileChannel.MapMode.READ_ONLY, 0, Files.size(path))
-                assertEquals(header, NpyFile.Header.read(input))
             }
         }
     }
