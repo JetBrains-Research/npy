@@ -6,7 +6,7 @@ import java.nio.ByteBuffer
 import java.nio.channels.Channels
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.zip.Deflater
+import java.util.zip.CRC32
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
@@ -52,18 +52,11 @@ data class NpzFile(val path: Path) : Closeable, AutoCloseable {
      * serialized array prior to archiving. Thus each [.write] call
      * requires N extra bytes of memory for an array of N bytes.
      */
-    class Writer(
-            /** Output path. */
-            val path: Path,
-            /** Compression level. */
-            compression: Int = Deflater.NO_COMPRESSION) : Closeable, AutoCloseable {
+    class Writer internal constructor(val path: Path, val compressed: Boolean) :
+            Closeable, AutoCloseable {
 
         private val zos = ZipOutputStream(Files.newOutputStream(path).buffered(),
                                           Charsets.US_ASCII)
-
-        init {
-            zos.setLevel(compression)
-        }
 
         fun write(name: String, data: BooleanArray) = withEntry(name) { NpyFile.allocate(data) }
 
@@ -85,7 +78,18 @@ data class NpzFile(val path: Path) : Closeable, AutoCloseable {
             val output = block()
             output.rewind()
 
-            zos.putNextEntry(ZipEntry(name + ".npy"))
+            val entry = ZipEntry(name + ".npy").apply {
+                if (compressed) {
+                    method = ZipEntry.DEFLATED
+                } else {
+                    method = ZipEntry.STORED
+                    size = output.capacity().toLong()
+                    crc = CRC32().apply { update(output) }.value
+                    output.rewind()
+                }
+            }
+
+            zos.putNextEntry(entry)
             try {
                 val fc = Channels.newChannel(zos)
                 while (output.hasRemaining()) {
@@ -101,8 +105,8 @@ data class NpzFile(val path: Path) : Closeable, AutoCloseable {
 
     companion object {
         /** Creates an NPZ file at [path] and populates it from a closure. */
-        inline fun create(path: Path, block: Writer.() -> Unit) {
-            Writer(path).use { it.apply(block) }
+        fun create(path: Path, compressed: Boolean = false, block: Writer.() -> Unit) {
+            Writer(path, compressed).use { it.apply(block) }
         }
     }
 }

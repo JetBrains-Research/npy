@@ -184,7 +184,8 @@ class NpyFile {
         }
 
         fun allocate(data: BooleanArray): ByteBuffer {
-            val header = Header(order = null, type = 'b', bytes = 1, shape = intArrayOf(data.size))
+            val header = Header(order = null, type = 'b', bytes = 1,
+                                shape = intArrayOf(data.size))
             return header.allocate().apply {
                 data.forEach { put(if (it) 1.toByte() else 0.toByte()) }
             }
