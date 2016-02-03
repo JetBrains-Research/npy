@@ -1,7 +1,6 @@
 package org.jetbrains.bio.npy
 
 import java.io.Closeable
-import java.io.File
 import java.nio.ByteBuffer
 import java.nio.channels.Channels
 import java.nio.file.Files
@@ -19,13 +18,39 @@ import java.util.zip.ZipOutputStream
  * accessibly via "X" and **not** "X.npy".
  */
 object NpzFile {
-    /** A reader for NPZ format. */
+    /**
+     * A reader for NPZ format.
+     *
+     * @since 0.2.0
+     */
     data class Reader internal constructor(val path: Path): Closeable, AutoCloseable {
         private val zf = ZipFile(path.toFile(), ZipFile.OPEN_READ, Charsets.US_ASCII)
 
+        /**
+         * Returns a mapping from array names to the corresponding
+         * scalar types in Java.
+         *
+         * @since 0.2.0
+         */
+        fun introspect() = zf.entries().asSequence().map {
+            val header = NpyFile.Header.read(zf.getBuffer(it))
+            it.stem to when ("${header.type}${header.bytes}") {
+                "i1", "u1" -> Byte::class.java
+                "i2", "u2" -> Short::class.java
+                "i4", "u4" -> Int::class.java
+                "i8", "u8" -> Long::class.java
+                "f4"       -> Float::class.java
+                "f8"       -> Double::class.java
+                else -> when (header.type) {
+                    'b'  -> Boolean::class.java
+                    'S'  -> String::class.java
+                    else -> TODO()  // Impossible.
+                }
+            }
+        }.toMap()
+
         /** Lists arrays available in a file. */
-        fun list() = zf.entries().asSequence()
-                .map { File(it.name).nameWithoutExtension }.toList()
+        fun list() = zf.entries().asSequence().map { it.stem }.toList()
 
         /**
          * Returns an array for a given name.
@@ -34,14 +59,19 @@ object NpzFile {
          * appropriate type.
          */
         operator fun get(name: String): Any {
-            val entry = zf.getEntry(name + ".npy")
+            return NpyFile.read(zf.getBuffer(zf.getEntry(name + ".npy")))
+        }
+
+        private val ZipEntry.stem: String get() = name.substringBeforeLast('.')
+
+        private fun ZipFile.getBuffer(entry: ZipEntry): ByteBuffer {
             val input = ByteBuffer.allocate(entry.size.toInt())
-            zf.getInputStream(entry).use {
+            getInputStream(entry).use {
                 Channels.newChannel(it).read(input)
             }
 
             input.rewind()
-            return NpyFile.read(input.asReadOnlyBuffer())
+            return input.asReadOnlyBuffer()
         }
 
         override fun close() = zf.close()
