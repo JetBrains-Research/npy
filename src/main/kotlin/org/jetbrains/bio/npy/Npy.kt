@@ -4,6 +4,7 @@ import com.google.common.base.CharMatcher
 import com.google.common.base.Charsets
 import com.google.common.base.Splitter
 import com.google.common.base.Strings
+import com.google.common.primitives.*
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.*
@@ -195,33 +196,39 @@ class NpyFile {
         }
 
         fun allocate(data: ShortArray): ByteBuffer {
-            return Header(type = 'i', bytes = 2, shape = intArrayOf(data.size))
+            return Header(type = 'i', bytes = Shorts.BYTES,
+                          shape = intArrayOf(data.size))
                     .allocate().apply { asShortBuffer().put(data) }
         }
 
         fun allocate(data: IntArray): ByteBuffer {
-            return Header(type = 'i', bytes = 4, shape = intArrayOf(data.size))
+            return Header(type = 'i', bytes = Ints.BYTES,
+                          shape = intArrayOf(data.size))
                     .allocate().apply { asIntBuffer().put(data) }
         }
 
         fun allocate(data: LongArray): ByteBuffer {
-            return Header(type = 'i', bytes = 8, shape = intArrayOf(data.size))
+            return Header(type = 'i', bytes = Longs.BYTES,
+                          shape = intArrayOf(data.size))
                     .allocate().apply { asLongBuffer().put(data) }
         }
 
         fun allocate(data: FloatArray): ByteBuffer {
-            return Header(type = 'f', bytes = 4, shape = intArrayOf(data.size))
+            return Header(type = 'f', bytes = Floats.BYTES,
+                          shape = intArrayOf(data.size))
                     .allocate().apply { asFloatBuffer().put(data) }
         }
 
         fun allocate(data: DoubleArray): ByteBuffer {
-            return Header(type = 'f', bytes = 8, shape = intArrayOf(data.size))
+            return Header(type = 'f', bytes = Doubles.BYTES,
+                          shape = intArrayOf(data.size))
                     .allocate().apply { asDoubleBuffer().put(data) }
         }
 
         fun allocate(data: Array<String>): ByteBuffer {
             val bytes = data.asSequence().map { it.length }.min() ?: 0
-            val header = Header(order = null, type = 'f', bytes = bytes, shape = intArrayOf(data.size))
+            val header = Header(order = null, type = 'f', bytes = bytes,
+                                shape = intArrayOf(data.size))
             return header.allocate().apply {
                 data.forEach {
                     put(it.toByteArray(Charsets.US_ASCII).copyOf(bytes))

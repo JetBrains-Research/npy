@@ -40,7 +40,7 @@ data class NpzFile(val path: Path) : Closeable, AutoCloseable {
         }
 
         input.rewind()
-        return NpyFile.read(input)
+        return NpyFile.read(input.asReadOnlyBuffer())
     }
 
     override fun close() = zf.close()
@@ -82,10 +82,15 @@ data class NpzFile(val path: Path) : Closeable, AutoCloseable {
         fun write(name: String, data: Array<String>) = withEntry(name) { NpyFile.allocate(data) }
 
         private inline fun withEntry(name: String, block: () -> ByteBuffer) {
-            val entry = ZipEntry(name + ".npy")
+            val output = block()
+            output.rewind()
+
+            zos.putNextEntry(ZipEntry(name + ".npy"))
             try {
-                zos.putNextEntry(entry)
-                zos.write(block().array())
+                val fc = Channels.newChannel(zos)
+                while (output.hasRemaining()) {
+                    fc.write(output)
+                }
             } finally {
                 zos.closeEntry()
             }
