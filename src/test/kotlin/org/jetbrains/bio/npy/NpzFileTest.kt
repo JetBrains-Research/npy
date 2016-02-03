@@ -65,4 +65,17 @@ class NpzFileTest {
             }
         }
     }
+
+    @Test fun createNested() {
+        withTempFile("test", ".npz") { path ->
+            NpzFile.create(path) {
+                it.write("foo/bar/baz/x_b", booleanArrayOf(true, true, true, false))
+            }
+
+            NpzFile.read(path).use { npzf ->
+                assertArrayEquals(booleanArrayOf(true, true, true, false),
+                                  npzf["foo/bar/baz/x_b"] as BooleanArray)
+            }
+        }
+    }
 }
