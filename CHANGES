@@ -6,9 +6,9 @@ Here you can see the full list of changes between each npy release.
 Version 0.1.0
 -------------
 
-Initial release, released on February 2nd, 2016
+Initial release, released on February 3rd, 2016
 
 - Sketched reading and writing API. This is not yet finalized and can
   change in the future releases.
-- Only 1D non-structured arrays of types 'b', 'i', 'u' and 'S' are
-  supported.
+- Only 1D non-structured arrays of types 'b', 'i', 'u', 'f' and 'S'
+  are supported.
