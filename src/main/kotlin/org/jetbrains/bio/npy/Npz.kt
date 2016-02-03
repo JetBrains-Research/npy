@@ -18,31 +18,37 @@ import java.util.zip.ZipOutputStream
  * doesn't expose it. So for instance the array named "X" will be
  * accessibly via "X" and **not** "X.npy".
  */
-data class NpzFile(val path: Path) : Closeable, AutoCloseable {
-    private val zf = ZipFile(path.toFile(), ZipFile.OPEN_READ, Charsets.US_ASCII)
+object NpzFile {
+    /** A reader for NPZ format. */
+    data class Reader internal constructor(val path: Path): Closeable, AutoCloseable {
+        private val zf = ZipFile(path.toFile(), ZipFile.OPEN_READ, Charsets.US_ASCII)
 
-    /** Lists arrays available in a file. */
-    fun list() = zf.entries().asSequence()
-            .map { File(it.name).nameWithoutExtension }.toList()
+        /** Lists arrays available in a file. */
+        fun list() = zf.entries().asSequence()
+                .map { File(it.name).nameWithoutExtension }.toList()
 
-    /**
-     * Returns an array for a given name.
-     *
-     * The caller is responsible for casting the resulting array to an
-     * appropriate type.
-     */
-    operator fun get(name: String): Any {
-        val entry = zf.getEntry(name + ".npy")
-        val input = ByteBuffer.allocate(entry.size.toInt())
-        zf.getInputStream(entry).use {
-            Channels.newChannel(it).read(input)
+        /**
+         * Returns an array for a given name.
+         *
+         * The caller is responsible for casting the resulting array to an
+         * appropriate type.
+         */
+        operator fun get(name: String): Any {
+            val entry = zf.getEntry(name + ".npy")
+            val input = ByteBuffer.allocate(entry.size.toInt())
+            zf.getInputStream(entry).use {
+                Channels.newChannel(it).read(input)
+            }
+
+            input.rewind()
+            return NpyFile.read(input.asReadOnlyBuffer())
         }
 
-        input.rewind()
-        return NpyFile.read(input.asReadOnlyBuffer())
+        override fun close() = zf.close()
     }
 
-    override fun close() = zf.close()
+    /** Opens an NPZ file at [path] for reading. */
+    @JvmStatic fun read(path: Path) = Reader(path)
 
     /**
      * A writer for NPZ format.
@@ -51,7 +57,7 @@ data class NpzFile(val path: Path) : Closeable, AutoCloseable {
      * serialized array prior to archiving. Thus each [.write] call
      * requires N extra bytes of memory for an array of N bytes.
      */
-    class Writer internal constructor(val path: Path, val compressed: Boolean) :
+    data class Writer internal constructor(val path: Path, val compressed: Boolean) :
             Closeable, AutoCloseable {
 
         private val zos = ZipOutputStream(Files.newOutputStream(path).buffered(),
@@ -102,11 +108,9 @@ data class NpzFile(val path: Path) : Closeable, AutoCloseable {
         override fun close() = zos.close()
     }
 
-    companion object {
-        /** Creates an NPZ file at [path] and populates it from a closure. */
-        @JvmStatic fun create(path: Path, compressed: Boolean = false,
-                              block: Writer.() -> Unit) {
-            Writer(path, compressed).use { it.apply(block) }
-        }
+    /** Creates an NPZ file at [path] and populates it from a closure. */
+    @JvmStatic fun create(path: Path, compressed: Boolean = false,
+                          block: (Writer) -> Unit) {
+        Writer(path, compressed).use { it.apply(block) }
     }
 }

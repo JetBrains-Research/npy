@@ -23,7 +23,7 @@ import kotlin.test.assertEquals
  */
 class NpzFileTest {
     @Test fun list() {
-        NpzFile(Examples["example.npz"]).use { npzf ->
+        NpzFile.read(Examples["example.npz"]).use { npzf ->
             assertEquals(setOf("x_i1", "x_i2", "x_u4", "x_i8",
                                "x_f4", "x_f8", "x_b", "x_S3"),
                          npzf.list().toSet())
@@ -31,7 +31,7 @@ class NpzFileTest {
     }
 
     @Test fun get() {
-        NpzFile(Examples["example.npz"]).use { npzf ->
+        NpzFile.read(Examples["example.npz"]).use { npzf ->
             assertArrayEquals(byteArrayOf(1, 2, 3, 4), npzf["x_i1"] as ByteArray)
             assertArrayEquals(shortArrayOf(1, 2, 3, 4, 4096), npzf["x_i2"] as ShortArray)
             assertArrayEquals(intArrayOf(1, 2, 3, 4), npzf["x_u4"] as IntArray)
@@ -54,11 +54,11 @@ class NpzFileTest {
     @Test fun create() {
         withTempFile("test", ".npz") { path ->
             NpzFile.create(path) {
-                write("x_b", booleanArrayOf(true, true, true, false))
-                write("x_i4", intArrayOf(1, 2, 3, 4))
+                it.write("x_b", booleanArrayOf(true, true, true, false))
+                it.write("x_i4", intArrayOf(1, 2, 3, 4))
             }
 
-            NpzFile(path).use { npzf ->
+            NpzFile.read(path).use { npzf ->
                 assertArrayEquals(booleanArrayOf(true, true, true, false),
                                   npzf["x_b"] as BooleanArray)
                 assertArrayEquals(intArrayOf(1, 2, 3, 4), npzf["x_i4"] as IntArray)
