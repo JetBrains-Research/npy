@@ -138,9 +138,8 @@ object NpzFile {
         override fun close() = zos.close()
     }
 
-    /** Creates an NPZ file at [path] and populates it from a closure. */
-    @JvmStatic fun create(path: Path, compressed: Boolean = false,
-                          block: (Writer) -> Unit) {
-        Writer(path, compressed).use { it.apply(block) }
+    /** Opens an NPZ file at [path] for writing. */
+    @JvmStatic fun write(path: Path, compressed: Boolean = false): Writer {
+        return Writer(path, compressed)
     }
 }

@@ -67,7 +67,7 @@ class NpzFileTest {
 
     @Test fun create() {
         withTempFile("test", ".npz") { path ->
-            NpzFile.create(path) {
+            NpzFile.write(path).use {
                 it.write("x_b", booleanArrayOf(true, true, true, false))
                 it.write("x_i4", intArrayOf(1, 2, 3, 4))
             }
@@ -82,7 +82,7 @@ class NpzFileTest {
 
     @Test fun createNested() {
         withTempFile("test", ".npz") { path ->
-            NpzFile.create(path) {
+            NpzFile.write(path).use {
                 it.write("foo/bar/baz/x_b", booleanArrayOf(true, true, true, false))
             }
 
