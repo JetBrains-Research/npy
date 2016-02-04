@@ -134,6 +134,8 @@ class NpyFile {
                 val header = ByteArray(size)
                 get(header)
 
+                // XXX this is very fragile. A proper implementation would
+                //     require a Python parser.
                 val normalized = CharMatcher.WHITESPACE.or(CharMatcher.anyOf("'{}()"))
                         .removeFrom(String(header, Charsets.US_ASCII).trimEnd(','))
                 val meta = Splitter.on(',').omitEmptyStrings()
@@ -146,9 +148,7 @@ class NpyFile {
                 }
 
                 val shape = meta["shape"]!!.split(',').map { it.toInt() }.toIntArray()
-                check(shape.size == 1) {
-                    "Multidimensional arrays are not supported"
-                }
+                check(shape.size == 1) { "Multidimensional arrays are not supported" }
 
                 val order = dtype[0].toByteOrder()
                 Header(major, minor, order = order,
