@@ -34,23 +34,26 @@ object NpzFile {
          */
         fun introspect() = zf.entries().asSequence().map {
             val header = NpyFile.Header.read(zf.getBuffer(it))
-            it.stem to when ("${header.type}${header.bytes}") {
-                "i1", "u1" -> Byte::class.java
-                "i2", "u2" -> Short::class.java
-                "i4", "u4" -> Int::class.java
-                "i8", "u8" -> Long::class.java
-                "f4"       -> Float::class.java
-                "f8"       -> Double::class.java
-                else -> when (header.type) {
-                    'b'  -> Boolean::class.java
-                    'S'  -> String::class.java
-                    else -> TODO()  // Impossible.
+            val type = when (header.type) {
+                'b' -> Boolean::class.java
+                'i', 'u' -> when (header.bytes) {
+                    1 -> Byte::class.java
+                    2 -> Short::class.java
+                    4 -> Int::class.java
+                    8 -> Long::class.java
+                    else -> impossible()
                 }
+                'f' -> when (header.bytes) {
+                    4 -> Float::class.java
+                    8 -> Double::class.java
+                    else -> impossible()
+                }
+                'S' -> String::class.java
+                else -> impossible()
             }
-        }.toMap()
 
-        /** Lists arrays available in a file. */
-        fun list() = zf.entries().asSequence().map { it.stem }.toList()
+            NpzEntry(it.name.substringBeforeLast('.'), type, header.shape.single())
+        }.toList()
 
         /**
          * Returns an array for a given name.
@@ -61,8 +64,6 @@ object NpzFile {
         operator fun get(name: String): Any {
             return NpyFile.read(zf.getBuffer(zf.getEntry(name + ".npy")))
         }
-
-        private val ZipEntry.stem: String get() = name.substringBeforeLast('.')
 
         private fun ZipFile.getBuffer(entry: ZipEntry): ByteBuffer {
             val input = ByteBuffer.allocate(entry.size.toInt())
@@ -143,3 +144,6 @@ object NpzFile {
         return Writer(path, compressed)
     }
 }
+
+/** A stripped down NPY header for an array in NPZ. */
+data class NpzEntry(val name: String, val type: Class<*>, val size: Int)

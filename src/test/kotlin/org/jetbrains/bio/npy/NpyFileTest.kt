@@ -52,6 +52,7 @@ class NpyFileTest {
         assertArrayEquals(data, NpyFile.read(path) as DoubleArray, Math.ulp(1.0))
     }
 
+    @Suppress("unchecked_cast")
     @Test fun testWriteReadStrings() = withTempFile("test", ".npy") { path ->
         val data = arrayOf("foo", "bar", "bazooka")
         NpyFile.write(path, data)

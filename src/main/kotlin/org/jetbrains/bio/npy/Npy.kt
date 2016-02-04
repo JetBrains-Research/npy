@@ -58,7 +58,7 @@ class NpyFile {
             val totalUnpadded = MAGIC.size + 2 + when (major to minor) {
                 1 to 0 -> 2
                 2 to 0 -> 4
-                else -> TODO()
+                else -> impossible()
             } + metaUnpadded.length
 
             Strings.padEnd(metaUnpadded,
@@ -78,7 +78,7 @@ class NpyFile {
             val total = MAGIC.size + 2 + when (major to minor) {
                     1 to 0 -> 2
                     2 to 0 -> 4
-                    else -> kotlin.TODO()
+                    else -> impossible()
             } + meta.size + bytes * size
 
             return ByteBuffer.allocate(total).apply {

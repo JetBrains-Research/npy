@@ -22,7 +22,7 @@ import kotlin.test.assertEquals
  * NumPy version 1.10.2.
  */
 class NpzFileTest {
-    @Test fun introspect() {
+    @Test fun introspectTypes() {
         NpzFile.read(Examples["example.npz"]).use { npzf ->
             assertEquals(mapOf("x_i1" to Byte::class.java,
                                "x_i2" to Short::class.java,
@@ -32,18 +32,19 @@ class NpzFileTest {
                                "x_f8" to Double::class.java,
                                "x_b" to Boolean::class.java,
                                "x_S3" to String::class.java),
-                         npzf.introspect())
+                         npzf.introspect().associateBy({ it.name }, { it.type }))
         }
     }
 
-    @Test fun list() {
+    @Test fun introspectNames() {
         NpzFile.read(Examples["example.npz"]).use { npzf ->
             assertEquals(setOf("x_i1", "x_i2", "x_u4", "x_i8",
                                "x_f4", "x_f8", "x_b", "x_S3"),
-                         npzf.list().toSet())
+                         npzf.introspect().map { it.name }.toSet())
         }
     }
 
+    @Suppress("unchecked_cast")
     @Test fun get() {
         NpzFile.read(Examples["example.npz"]).use { npzf ->
             assertArrayEquals(byteArrayOf(1, 2, 3, 4), npzf["x_i1"] as ByteArray)
