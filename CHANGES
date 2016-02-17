@@ -6,6 +6,8 @@ Here you can see the full list of changes between each npy release.
 Version 0.2.0
 -------------
 
+Released on February 17th, 2016
+
 - Unified reading and writing API of 'NpzFile'.
 - Added 'NpzFile.Reader#introspect' for exploring the metadata of an
   NPZ file without reading whole arrays.
