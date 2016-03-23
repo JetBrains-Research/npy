@@ -6,6 +6,8 @@ Here you can see the full list of changes between each npy release.
 Version 0.2.1
 -------------
 
+Bugfix release, released on March 23rd, 2016
+
 - Fixed metadata in NPY files created by 'NpyFile.write'. See
   issue #4 on GitHub.
 
