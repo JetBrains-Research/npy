@@ -51,7 +51,7 @@ class NpyFile {
         val meta: ByteArray by lazy {
             val descr = "${order.toChar()}$type$bytes"
             val metaUnpadded =
-                    "{'descr': '$descr', 'fortran_order': False, 'shape': (${shape.joinToString(",")}), }\n"
+                    "{'descr': '$descr', 'fortran_order': False, 'shape': (${shape.joinToString(",")}, ), }\n"
 
             // According to the spec the total header size should be
             // evenly divisible by 16 for alignment purposes.

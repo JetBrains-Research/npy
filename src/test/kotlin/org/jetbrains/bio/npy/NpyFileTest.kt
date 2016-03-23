@@ -3,6 +3,7 @@ package org.jetbrains.bio.npy
 import com.google.common.primitives.Shorts
 import org.junit.Assert.assertArrayEquals
 import org.junit.Test
+import java.lang.ProcessBuilder.Redirect
 import java.nio.channels.FileChannel
 import java.nio.file.Files
 import java.nio.file.StandardOpenOption
@@ -90,5 +91,37 @@ class NpyFileHeaderTest {
                 assertEquals(header, NpyFile.Header.read(input))
             }
         }
+    }
+}
+
+class NpyFileNumPyTest {
+    private val hasNumPy: Boolean get() {
+        val (rc, _output) = command("python", "-c", "import numpy")
+        return rc == 0
+    }
+
+    @Test fun testWriteRead() {
+        if (!hasNumPy) {
+            return
+        }
+
+        withTempFile("test", ".npy") { path ->
+            val data = intArrayOf(1, 2, 3, 4)
+            NpyFile.write(path, data)
+            val (rc, output) = command(
+                    "python", "-c", "import numpy as np; print(np.load('$path'))")
+            assertEquals(0, rc)
+            assertEquals("[1 2 3 4]", output.trim())
+        }
+    }
+
+    private fun command(vararg args: String): Pair<Int, String> {
+        val p = ProcessBuilder()
+                .command(*args)
+                .redirectOutput(Redirect.PIPE)
+                .start()
+
+        val rc = p.waitFor()
+        return rc to p.inputStream.bufferedReader().readText()
     }
 }
