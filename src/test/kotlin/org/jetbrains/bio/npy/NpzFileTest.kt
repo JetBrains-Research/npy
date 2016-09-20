@@ -47,22 +47,22 @@ class NpzFileTest {
     @Suppress("unchecked_cast")
     @Test fun get() {
         NpzFile.read(Examples["example.npz"]).use { npzf ->
-            assertArrayEquals(byteArrayOf(1, 2, 3, 4), npzf["x_i1"] as ByteArray)
-            assertArrayEquals(shortArrayOf(1, 2, 3, 4, 4096), npzf["x_i2"] as ShortArray)
-            assertArrayEquals(intArrayOf(1, 2, 3, 4), npzf["x_u4"] as IntArray)
-            assertArrayEquals(longArrayOf(1, 2, 3, 4, 65536), npzf["x_i8"] as LongArray)
+            assertArrayEquals(byteArrayOf(1, 2, 3, 4), npzf["x_i1"].asByteArray())
+            assertArrayEquals(shortArrayOf(1, 2, 3, 4, 4096), npzf["x_i2"].asShortArray())
+            assertArrayEquals(intArrayOf(1, 2, 3, 4), npzf["x_u4"].asIntArray())
+            assertArrayEquals(longArrayOf(1, 2, 3, 4, 65536), npzf["x_i8"].asLongArray())
 
             assertArrayEquals(floatArrayOf(1.0f, 2.0f, 3.0f, 4.0f),
-                              npzf["x_f4"] as FloatArray,
+                              npzf["x_f4"].asFloatArray(),
                               Math.ulp(1.0f))
             assertArrayEquals(doubleArrayOf(1.0, 2.0, 3.0, 4.0),
-                              npzf["x_f8"] as DoubleArray,
+                              npzf["x_f8"].asDoubleArray(),
                               Math.ulp(1.0))
 
             assertArrayEquals(booleanArrayOf(true, true, true, false),
-                              npzf["x_b"] as BooleanArray)
+                              npzf["x_b"].asBooleanArray())
 
-            assertArrayEquals(arrayOf("aha", "hah"), npzf["x_S3"] as Array<String>)
+            assertArrayEquals(arrayOf("aha", "hah"), npzf["x_S3"].asStringArray())
         }
     }
 
@@ -75,8 +75,8 @@ class NpzFileTest {
 
             NpzFile.read(path).use { npzf ->
                 assertArrayEquals(booleanArrayOf(true, true, true, false),
-                                  npzf["x_b"] as BooleanArray)
-                assertArrayEquals(intArrayOf(1, 2, 3, 4), npzf["x_i4"] as IntArray)
+                                  npzf["x_b"].asBooleanArray())
+                assertArrayEquals(intArrayOf(1, 2, 3, 4), npzf["x_i4"].asIntArray())
             }
         }
     }
@@ -89,7 +89,7 @@ class NpzFileTest {
 
             NpzFile.read(path).use { npzf ->
                 assertArrayEquals(booleanArrayOf(true, true, true, false),
-                                  npzf["foo/bar/baz/x_b"] as BooleanArray)
+                                  npzf["foo/bar/baz/x_b"].asBooleanArray())
             }
         }
     }

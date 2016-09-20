@@ -3,6 +3,9 @@ package org.jetbrains.bio.npy
 import com.google.common.primitives.Shorts
 import org.junit.Assert.assertArrayEquals
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.Parameterized
+import org.junit.runners.Parameterized.Parameters
 import java.lang.ProcessBuilder.Redirect
 import java.nio.channels.FileChannel
 import java.nio.file.Files
@@ -14,50 +17,71 @@ class NpyFileTest {
     @Test fun testWriteReadBooleans() = withTempFile("test", ".npy") { path ->
         val data = booleanArrayOf(true, true, true, false)
         NpyFile.write(path, data)
-        assertArrayEquals(data, NpyFile.read(path) as BooleanArray)
+        assertArrayEquals(data, NpyFile.read(path).asBooleanArray())
     }
 
     @Test fun testWriteReadBytes() = withTempFile("test", ".npy") { path ->
         val data = byteArrayOf(1, 2, 3, 4)
         NpyFile.write(path, data)
-        assertArrayEquals(data, NpyFile.read(path) as ByteArray)
+        assertArrayEquals(data, NpyFile.read(path).asByteArray())
     }
 
     @Test fun testWriteReadShorts() = withTempFile("test", ".npy") { path ->
         val data = shortArrayOf(1, 2, 3, 4)
         NpyFile.write(path, data)
-        assertArrayEquals(data, NpyFile.read(path) as ShortArray)
+        assertArrayEquals(data, NpyFile.read(path).asShortArray())
     }
 
     @Test fun testWriteReadInts() = withTempFile("test", ".npy") { path ->
         val data = intArrayOf(1, 2, 3, 4)
         NpyFile.write(path, data)
-        assertArrayEquals(data, NpyFile.read(path) as IntArray)
+        assertArrayEquals(data, NpyFile.read(path).asIntArray())
     }
 
     @Test fun testWriteReadLongs() = withTempFile("test", ".npy") { path ->
         val data = longArrayOf(1, 2, 3, 4)
         NpyFile.write(path, data)
-        assertArrayEquals(data, NpyFile.read(path) as LongArray)
+        assertArrayEquals(data, NpyFile.read(path).asLongArray())
     }
 
     @Test fun testWriteReadFloats() = withTempFile("test", ".npy") { path ->
         val data = floatArrayOf(1f, 2f, 3f, 4f)
         NpyFile.write(path, data)
-        assertArrayEquals(data, NpyFile.read(path) as FloatArray, Math.ulp(1f))
+        assertArrayEquals(data, NpyFile.read(path).asFloatArray(), Math.ulp(1f))
     }
 
     @Test fun testWriteReadDoubles() = withTempFile("test", ".npy") { path ->
         val data = doubleArrayOf(1.0, 2.0, 3.0, 4.0)
         NpyFile.write(path, data)
-        assertArrayEquals(data, NpyFile.read(path) as DoubleArray, Math.ulp(1.0))
+        assertArrayEquals(data, NpyFile.read(path).asDoubleArray(), Math.ulp(1.0))
     }
 
     @Suppress("unchecked_cast")
     @Test fun testWriteReadStrings() = withTempFile("test", ".npy") { path ->
         val data = arrayOf("foo", "bar", "bazooka")
         NpyFile.write(path, data)
-        assertArrayEquals(data, NpyFile.read(path) as Array<String>)
+        assertArrayEquals(data, NpyFile.read(path).asStringArray())
+    }
+}
+
+@RunWith(Parameterized::class)
+class NpyFileNDTest(private val shape: IntArray) {
+    @Test fun writeReadDouble() = withTempFile("test", ".npy") { path ->
+        val data = doubleArrayOf(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0)
+        NpyFile.write(path, data, shape = shape)
+        val serialized = NpyFile.read(path)
+        assertArrayEquals(shape, serialized.shape)
+        assertArrayEquals(data, serialized.asDoubleArray(), Math.ulp(1.0))
+    }
+
+    companion object {
+        @JvmStatic @Parameters fun `data`() = listOf(
+                intArrayOf(1, 8),
+                intArrayOf(8, 1),
+                intArrayOf(2, 4),
+                intArrayOf(4, 2),
+                intArrayOf(2, 2, 2),
+                intArrayOf(2, 2, 2, 1))
     }
 }
 

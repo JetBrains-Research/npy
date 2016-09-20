@@ -3,6 +3,11 @@ npy Changelog
 
 Here you can see the full list of changes between each npy release.
 
+Version 0.3.0
+-------------
+
+- Added support for reading and writing arbitrary-dimensional arrays.
+
 Version 0.2.1
 -------------
 

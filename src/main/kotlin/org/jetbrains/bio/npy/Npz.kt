@@ -61,7 +61,7 @@ object NpzFile {
          * The caller is responsible for casting the resulting array to an
          * appropriate type.
          */
-        operator fun get(name: String): Any {
+        operator fun get(name: String): NpyArray {
             return NpyFile.read(zf.getBuffer(zf.getEntry(name + ".npy")))
         }
 
@@ -94,21 +94,45 @@ object NpzFile {
         private val zos = ZipOutputStream(Files.newOutputStream(path).buffered(),
                                           Charsets.US_ASCII)
 
-        fun write(name: String, data: BooleanArray) = withEntry(name) { NpyFile.allocate(data) }
+        @JvmOverloads
+        fun write(name: String, data: BooleanArray, shape: IntArray = intArrayOf(data.size)) {
+            withEntry(name) { NpyFile.allocate(data, shape) }
+        }
 
-        fun write(name: String, data: ByteArray) = withEntry(name) { NpyFile.allocate(data) }
+        @JvmOverloads
+        fun write(name: String, data: ByteArray, shape: IntArray = intArrayOf(data.size)) {
+            withEntry(name) { NpyFile.allocate(data, shape) }
+        }
 
-        fun write(name: String, data: ShortArray) = withEntry(name) { NpyFile.allocate(data) }
+        @JvmOverloads
+        fun write(name: String, data: ShortArray, shape: IntArray = intArrayOf(data.size)) {
+            withEntry(name) { NpyFile.allocate(data, shape) }
+        }
 
-        fun write(name: String, data: IntArray) = withEntry(name) { NpyFile.allocate(data) }
+        @JvmOverloads
+        fun write(name: String, data: IntArray, shape: IntArray = intArrayOf(data.size)) {
+            withEntry(name) { NpyFile.allocate(data, shape) }
+        }
 
-        fun write(name: String, data: LongArray) = withEntry(name) { NpyFile.allocate(data) }
+        @JvmOverloads
+        fun write(name: String, data: LongArray, shape: IntArray = intArrayOf(data.size)) {
+            withEntry(name) { NpyFile.allocate(data, shape) }
+        }
 
-        fun write(name: String, data: FloatArray) = withEntry(name) { NpyFile.allocate(data) }
+        @JvmOverloads
+        fun write(name: String, data: FloatArray, shape: IntArray = intArrayOf(data.size)) {
+            withEntry(name) { NpyFile.allocate(data, shape) }
+        }
 
-        fun write(name: String, data: DoubleArray) = withEntry(name) { NpyFile.allocate(data) }
+        @JvmOverloads
+        fun write(name: String, data: DoubleArray, shape: IntArray = intArrayOf(data.size)) {
+            withEntry(name) { NpyFile.allocate(data, shape) }
+        }
 
-        fun write(name: String, data: Array<String>) = withEntry(name) { NpyFile.allocate(data) }
+        @JvmOverloads
+        fun write(name: String, data: Array<String>, shape: IntArray = intArrayOf(data.size)) {
+            withEntry(name) { NpyFile.allocate(data, shape) }
+        }
 
         private inline fun withEntry(name: String, block: () -> ByteBuffer) {
             val output = block()
