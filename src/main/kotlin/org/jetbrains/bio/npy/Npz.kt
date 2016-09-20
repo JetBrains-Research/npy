@@ -92,7 +92,7 @@ object NpzFile {
      * A writer for NPZ format.
      *
      * The implementation uses a temporary [ByteBuffer] to store the
-     * serialized array prior to archiving. Thus each [.write] call
+     * serialized array prior to archiving. Thus each [write] call
      * requires N extra bytes of memory for an array of N bytes.
      */
     data class Writer internal constructor(val path: Path, val compressed: Boolean) :

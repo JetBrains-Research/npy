@@ -336,7 +336,7 @@ class NpyArray(
 
     override fun toString() = MoreObjects.toStringHelper(this)
             .add("data", Arrays.deepToString(arrayOf(data))
-                    .let { it.substring(1, it.length - 1) })
+                    .removeSurrounding("[", "]")
             .add("shape", Arrays.toString(shape))
             .toString()
 }
