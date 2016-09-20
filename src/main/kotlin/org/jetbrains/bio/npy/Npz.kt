@@ -1,10 +1,13 @@
 package org.jetbrains.bio.npy
 
+import com.google.common.base.MoreObjects
 import java.io.Closeable
 import java.nio.ByteBuffer
 import java.nio.channels.Channels
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
+import java.util.*
 import java.util.zip.CRC32
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
@@ -16,6 +19,8 @@ import java.util.zip.ZipOutputStream
  * By convention each file has `.npy` extension, however, the API
  * doesn't expose it. So for instance the array named "X" will be
  * accessibly via "X" and **not** "X.npy".
+ *
+ * @sample npzExample
  */
 object NpzFile {
     /**
@@ -52,7 +57,7 @@ object NpzFile {
                 else -> impossible()
             }
 
-            NpzEntry(it.name.substringBeforeLast('.'), type, header.shape.single())
+            NpzEntry(it.name.substringBeforeLast('.'), type, header.shape)
         }.toList()
 
         /**
@@ -170,4 +175,37 @@ object NpzFile {
 }
 
 /** A stripped down NPY header for an array in NPZ. */
-data class NpzEntry(val name: String, val type: Class<*>, val size: Int)
+class NpzEntry(val name: String, val type: Class<*>, val shape: IntArray) {
+    override fun toString() = MoreObjects.toStringHelper(this)
+            .add("name", name)
+            .add("type", type)
+            .add("shape", Arrays.toString(shape))
+            .toString()
+}
+
+/** This function is for documentation purposes only. */
+internal fun npzExample() {
+    val values1 = intArrayOf(1, 2, 3, 4, 5, 6)
+    val values2 = booleanArrayOf(true, false)
+    val path = Paths.get("sample.npz")
+
+    NpzFile.write(path).use {
+        it.write("xs", values1, shape = intArrayOf(2, 3))
+        it.write("mask", values2)
+    }
+
+    NpzFile.read(path).use {
+        println(it.introspect())
+        // => [NpzEntry{name=xs, type=int, shape=[2, 3]},
+        //     NpzEntry{name=mask, type=boolean, shape=[2]}]
+
+        println("xs   = ${it["xs"]}")
+        println("mask = ${it["mask"]}")
+        // => xs   = NpyArray{data=[1, 2, 3, 4, 5, 6], shape=[2, 3]}
+        //    mask = NpyArray{data=[true, false], shape=[2]}
+    }
+}
+
+fun main(args: Array<String>) {
+    npzExample()
+}

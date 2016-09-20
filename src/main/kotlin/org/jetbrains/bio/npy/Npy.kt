@@ -1,6 +1,7 @@
 package org.jetbrains.bio.npy
 
 import com.google.common.base.Charsets
+import com.google.common.base.MoreObjects
 import com.google.common.base.Strings
 import com.google.common.primitives.*
 import java.nio.ByteBuffer
@@ -8,11 +9,14 @@ import java.nio.ByteOrder
 import java.nio.channels.FileChannel
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import java.util.*
 
 /**
  * A file in NPY format.
+ *
+ * @sample [npyExample]
  *
  * Currently unsupported types:
  *
@@ -329,6 +333,12 @@ class NpyArray(
 
     @Suppress("unchecked_cast")
     fun asStringArray() = data as Array<String>
+
+    override fun toString() = MoreObjects.toStringHelper(this)
+            .add("data", Arrays.deepToString(arrayOf(data))
+                    .let { it.substring(1, it.length - 1) })
+            .add("shape", Arrays.toString(shape))
+            .toString()
 }
 
 private fun Char.toByteOrder() = when (this) {
@@ -343,4 +353,14 @@ private fun ByteOrder?.toChar() = when (this) {
     ByteOrder.BIG_ENDIAN -> '>'
     null -> '|'
     else -> error(this)
+}
+
+/** This function is for documentation purposes only. */
+internal fun npyExample() {
+    val values = intArrayOf(1, 2, 3, 4, 5, 6)
+    val path = Paths.get("sample.npy")
+    NpyFile.write(path, values, shape = intArrayOf(2, 3))
+
+    println(NpyFile.read(path))
+    // => NpyArray{data=[1, 2, 3, 4, 5, 6], shape=[2, 3]}
 }

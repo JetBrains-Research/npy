@@ -93,4 +93,18 @@ class NpzFileTest {
             }
         }
     }
+
+    @Test fun createNd() {
+        withTempFile("test", ".npz") { path ->
+            NpzFile.write(path).use {
+                it.write("x_i4", intArrayOf(1, 2, 3, 4), shape = intArrayOf(2, 2))
+            }
+
+            NpzFile.read(path).use { npzf ->
+                assertArrayEquals(intArrayOf(2, 2), npzf["x_i4"].shape)
+                assertArrayEquals(intArrayOf(1, 2, 3, 4),
+                                  npzf["x_i4"].asIntArray())
+            }
+        }
+    }
 }
