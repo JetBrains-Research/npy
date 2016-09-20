@@ -61,7 +61,7 @@ private fun parseTuple(lexer: PeekingIterator<SpannedToken>): List<Int> {
     return acc
 }
 
-enum class Token(pattern: String) {
+private enum class Token(pattern: String) {
     LBRA("\\{"), RBRA("\\}"),
     LPAR("\\("), RPAR("\\)"),
     COMMA(","),
@@ -74,9 +74,10 @@ enum class Token(pattern: String) {
     val regex = "^$pattern".toRegex()
 }
 
-data class SpannedToken(val token: Token, val span: String)
+private data class SpannedToken(val token: Token, val span: String)
 
-fun tokenize(s: String): PeekingIterator<SpannedToken> {
+/** Greedily tokenize a string for [parseDict]. */
+private fun tokenize(s: String): PeekingIterator<SpannedToken> {
     var leftover = s
     val tokens = generateSequence {
         val best = Token.values().mapNotNull { token ->
@@ -94,12 +95,14 @@ fun tokenize(s: String): PeekingIterator<SpannedToken> {
     return Iterators.peekingIterator(tokens.iterator())
 }
 
+/** Consume a token and return it. */
 private fun Iterator<SpannedToken>.eat(expected: Token): SpannedToken {
     val st = next()
     check(st.token == expected) { "Expected $expected, but got ${st.token}" }
     return st
 }
 
+/** Try to consume a token and return it or `null` if anything goes wrong. */
 private fun PeekingIterator<SpannedToken>.tryEat(expected: Token): SpannedToken? {
     return if (hasNext() && peek().token == expected) {
         next()
