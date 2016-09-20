@@ -2,7 +2,7 @@
 
 # data
 
-`val data: Any` [(source)](https://github.com/JetBrains-Research/npy/blob/0.3.0/src/main/kotlin/org/jetbrains/bio/npy/Npy.kt#L318)
+`val data: Any` [(source)](https://github.com/JetBrains-Research/npy/blob/0.3.0/src/main/kotlin/org/jetbrains/bio/npy/Npy.kt#L316)
 
 Array data.
 

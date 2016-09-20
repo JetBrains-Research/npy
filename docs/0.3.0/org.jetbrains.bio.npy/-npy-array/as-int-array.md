@@ -2,4 +2,4 @@
 
 # asIntArray
 
-`fun asIntArray(): IntArray` [(source)](https://github.com/JetBrains-Research/npy/blob/0.3.0/src/main/kotlin/org/jetbrains/bio/npy/Npy.kt#L328)
+`fun asIntArray(): IntArray` [(source)](https://github.com/JetBrains-Research/npy/blob/0.3.0/src/main/kotlin/org/jetbrains/bio/npy/Npy.kt#L326)

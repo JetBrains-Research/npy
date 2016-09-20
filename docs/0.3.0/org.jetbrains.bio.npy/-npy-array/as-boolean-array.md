@@ -2,4 +2,4 @@
 
 # asBooleanArray
 
-`fun asBooleanArray(): BooleanArray` [(source)](https://github.com/JetBrains-Research/npy/blob/0.3.0/src/main/kotlin/org/jetbrains/bio/npy/Npy.kt#L322)
+`fun asBooleanArray(): BooleanArray` [(source)](https://github.com/JetBrains-Research/npy/blob/0.3.0/src/main/kotlin/org/jetbrains/bio/npy/Npy.kt#L320)

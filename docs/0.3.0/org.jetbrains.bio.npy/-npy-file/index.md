@@ -2,7 +2,7 @@
 
 # NpyFile
 
-`class NpyFile` [(source)](https://github.com/JetBrains-Research/npy/blob/0.3.0/src/main/kotlin/org/jetbrains/bio/npy/Npy.kt#L35)
+`object NpyFile` [(source)](https://github.com/JetBrains-Research/npy/blob/0.3.0/src/main/kotlin/org/jetbrains/bio/npy/Npy.kt#L35)
 
 A file in NPY format.
 
@@ -28,13 +28,7 @@ println(NpyFile.read(path))
 // =&gt; NpyArray{data=[1, 2, 3, 4, 5, 6], shape=[2, 3]}
 ```
 
-### Constructors
-
-| Name | Summary |
-|---|---|
-| [&lt;init&gt;](-init-.md) | `NpyFile()`<br>A file in NPY format. |
-
-### Companion Object Functions
+### Functions
 
 | Name | Summary |
 |---|---|

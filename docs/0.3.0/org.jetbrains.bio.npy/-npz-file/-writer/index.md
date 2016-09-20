@@ -7,7 +7,7 @@
 A writer for NPZ format.
 
 The implementation uses a temporary [ByteBuffer](http://docs.oracle.com/javase/6/docs/api/java/nio/ByteBuffer.html) to store the
-serialized array prior to archiving. Thus each [.write](#) call
+serialized array prior to archiving. Thus each [write](write.md) call
 requires N extra bytes of memory for an array of N bytes.
 
 ### Properties

@@ -2,4 +2,4 @@
 
 # asByteArray
 
-`fun asByteArray(): ByteArray` [(source)](https://github.com/JetBrains-Research/npy/blob/0.3.0/src/main/kotlin/org/jetbrains/bio/npy/Npy.kt#L324)
+`fun asByteArray(): ByteArray` [(source)](https://github.com/JetBrains-Research/npy/blob/0.3.0/src/main/kotlin/org/jetbrains/bio/npy/Npy.kt#L322)

@@ -2,7 +2,7 @@
 
 # NpyArray
 
-`class NpyArray` [(source)](https://github.com/JetBrains-Research/npy/blob/0.3.0/src/main/kotlin/org/jetbrains/bio/npy/Npy.kt#L316)
+`class NpyArray` [(source)](https://github.com/JetBrains-Research/npy/blob/0.3.0/src/main/kotlin/org/jetbrains/bio/npy/Npy.kt#L314)
 
 A wrapper for NPY array data.
 

@@ -2,7 +2,7 @@
 
 # read
 
-`@JvmStatic fun read(path: `[`Path`](http://docs.oracle.com/javase/6/docs/api/java/nio/file/Path.html)`): `[`NpyArray`](../-npy-array/index.md) [(source)](https://github.com/JetBrains-Research/npy/blob/0.3.0/src/main/kotlin/org/jetbrains/bio/npy/Npy.kt#L166)
+`@JvmStatic fun read(path: `[`Path`](http://docs.oracle.com/javase/6/docs/api/java/nio/file/Path.html)`): `[`NpyArray`](../-npy-array/index.md) [(source)](https://github.com/JetBrains-Research/npy/blob/0.3.0/src/main/kotlin/org/jetbrains/bio/npy/Npy.kt#L165)
 
 Reads an array in NPY format from a given path.
 
