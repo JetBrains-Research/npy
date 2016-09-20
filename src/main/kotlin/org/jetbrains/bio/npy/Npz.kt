@@ -207,7 +207,3 @@ internal fun npzExample() {
         //    mask = NpyArray{data=[true, false], shape=[2]}
     }
 }
-
-fun main(args: Array<String>) {
-    npzExample()
-}
