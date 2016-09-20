@@ -32,7 +32,7 @@ import java.util.*
  *
  * @sample [org.jetbrains.bio.npy.npyExample]
  */
-class NpyFile {
+object NpyFile {
     /**
      * NPY file header.
      *
@@ -156,157 +156,155 @@ class NpyFile {
         }
     }
 
-    companion object {
-        /**
-         * Reads an array in NPY format from a given path.
-         *
-         * The caller is responsible for coercing the resulting array to
-         * an appropriate type via [NpyArray] methods.
-         */
-        @JvmStatic fun read(path: Path): NpyArray = FileChannel.open(path).use {
-            read(it.map(FileChannel.MapMode.READ_ONLY, 0, Files.size(path)))
-        }
+    /**
+     * Reads an array in NPY format from a given path.
+     *
+     * The caller is responsible for coercing the resulting array to
+     * an appropriate type via [NpyArray] methods.
+     */
+    @JvmStatic fun read(path: Path): NpyArray = FileChannel.open(path).use {
+        read(it.map(FileChannel.MapMode.READ_ONLY, 0, Files.size(path)))
+    }
 
-        internal fun read(input: ByteBuffer): NpyArray {
-            val header = Header.read(input)
-            val size = header.shape.product()
-            check(input.remaining() == header.bytes * size)
-            val data: Any = with(input.order(header.order)) {
-                when (header.type) {
-                    'b' -> {
-                        check(header.bytes == 1)
-                        BooleanArray(size) { get() == 1.toByte() }
-                    }
-                    'u', 'i' -> when (header.bytes) {
-                        1 -> ByteArray(size).apply { get(this) }
-                        2 -> ShortArray(size).apply { asShortBuffer().get(this) }
-                        4 -> IntArray(size).apply { asIntBuffer().get(this) }
-                        8 -> LongArray(size).apply { asLongBuffer().get(this) }
-                        else -> error("invalid number of bytes for ${header.type}: ${header.bytes}")
-                    }
-                    'f' -> when (header.bytes) {
-                        4 -> FloatArray(size).apply { asFloatBuffer().get(this) }
-                        8 -> DoubleArray(size).apply { asDoubleBuffer().get(this) }
-                        else -> error("invalid number of bytes for ${header.type}: ${header.bytes}")
-                    }
-                    'S' -> Array(size) {
-                        val s = ByteArray(header.bytes)
-                        get(s)
-                        String(s, Charsets.US_ASCII).trim { it == '\u0000' }
-                    }
-                    else -> error("unsupported type: ${header.type}")
+    internal fun read(input: ByteBuffer): NpyArray {
+        val header = Header.read(input)
+        val size = header.shape.product()
+        check(input.remaining() == header.bytes * size)
+        val data: Any = with(input.order(header.order)) {
+            when (header.type) {
+                'b' -> {
+                    check(header.bytes == 1)
+                    BooleanArray(size) { get() == 1.toByte() }
                 }
-            }
-
-            return NpyArray(data, header.shape)
-        }
-
-        /**
-         * Writes an array in NPY format to a given path.
-         */
-        @JvmOverloads
-        @JvmStatic fun write(path: Path, data: BooleanArray,
-                             shape: IntArray = intArrayOf(data.size)) {
-            write(path, allocate(data, shape))
-        }
-
-        @JvmOverloads
-        @JvmStatic fun write(path: Path, data: ByteArray,
-                             shape: IntArray = intArrayOf(data.size)) {
-            write(path, allocate(data, shape))
-        }
-
-        @JvmOverloads
-        @JvmStatic fun write(path: Path, data: ShortArray,
-                             shape: IntArray = intArrayOf(data.size)) {
-            write(path, allocate(data, shape))
-        }
-
-        @JvmOverloads
-        @JvmStatic fun write(path: Path, data: IntArray,
-                             shape: IntArray = intArrayOf(data.size)) {
-            write(path, allocate(data, shape))
-        }
-
-        @JvmOverloads
-        @JvmStatic fun write(path: Path, data: LongArray,
-                             shape: IntArray = intArrayOf(data.size)) {
-            write(path, allocate(data, shape))
-        }
-
-        @JvmOverloads
-        @JvmStatic fun write(path: Path, data: FloatArray,
-                             shape: IntArray = intArrayOf(data.size)) {
-            write(path, allocate(data, shape))
-        }
-
-        @JvmOverloads
-        @JvmStatic fun write(path: Path, data: DoubleArray,
-                             shape: IntArray = intArrayOf(data.size)) {
-            write(path, allocate(data, shape))
-        }
-
-        @JvmOverloads
-        @JvmStatic fun write(path: Path, data: Array<String>,
-                             shape: IntArray = intArrayOf(data.size)) {
-            write(path, allocate(data, shape))
-        }
-
-        private fun write(path: Path, output: ByteBuffer) {
-            FileChannel.open(path,
-                             StandardOpenOption.WRITE,
-                             StandardOpenOption.CREATE).use {
-                output.rewind()
-                while (output.hasRemaining()) {
-                    it.write(output)
+                'u', 'i' -> when (header.bytes) {
+                    1 -> ByteArray(size).apply { get(this) }
+                    2 -> ShortArray(size).apply { asShortBuffer().get(this) }
+                    4 -> IntArray(size).apply { asIntBuffer().get(this) }
+                    8 -> LongArray(size).apply { asLongBuffer().get(this) }
+                    else -> error("invalid number of bytes for ${header.type}: ${header.bytes}")
                 }
+                'f' -> when (header.bytes) {
+                    4 -> FloatArray(size).apply { asFloatBuffer().get(this) }
+                    8 -> DoubleArray(size).apply { asDoubleBuffer().get(this) }
+                    else -> error("invalid number of bytes for ${header.type}: ${header.bytes}")
+                }
+                'S' -> Array(size) {
+                    val s = ByteArray(header.bytes)
+                    get(s)
+                    String(s, Charsets.US_ASCII).trim { it == '\u0000' }
+                }
+                else -> error("unsupported type: ${header.type}")
             }
         }
 
-        internal fun allocate(data: BooleanArray, shape: IntArray): ByteBuffer {
-            val header = Header(order = null, type = 'b', bytes = 1, shape = shape)
-            return header.allocate().apply {
-                data.forEach { put(if (it) 1.toByte() else 0.toByte()) }
+        return NpyArray(data, header.shape)
+    }
+
+    /**
+     * Writes an array in NPY format to a given path.
+     */
+    @JvmOverloads
+    @JvmStatic fun write(path: Path, data: BooleanArray,
+                         shape: IntArray = intArrayOf(data.size)) {
+        write(path, allocate(data, shape))
+    }
+
+    @JvmOverloads
+    @JvmStatic fun write(path: Path, data: ByteArray,
+                         shape: IntArray = intArrayOf(data.size)) {
+        write(path, allocate(data, shape))
+    }
+
+    @JvmOverloads
+    @JvmStatic fun write(path: Path, data: ShortArray,
+                         shape: IntArray = intArrayOf(data.size)) {
+        write(path, allocate(data, shape))
+    }
+
+    @JvmOverloads
+    @JvmStatic fun write(path: Path, data: IntArray,
+                         shape: IntArray = intArrayOf(data.size)) {
+        write(path, allocate(data, shape))
+    }
+
+    @JvmOverloads
+    @JvmStatic fun write(path: Path, data: LongArray,
+                         shape: IntArray = intArrayOf(data.size)) {
+        write(path, allocate(data, shape))
+    }
+
+    @JvmOverloads
+    @JvmStatic fun write(path: Path, data: FloatArray,
+                         shape: IntArray = intArrayOf(data.size)) {
+        write(path, allocate(data, shape))
+    }
+
+    @JvmOverloads
+    @JvmStatic fun write(path: Path, data: DoubleArray,
+                         shape: IntArray = intArrayOf(data.size)) {
+        write(path, allocate(data, shape))
+    }
+
+    @JvmOverloads
+    @JvmStatic fun write(path: Path, data: Array<String>,
+                         shape: IntArray = intArrayOf(data.size)) {
+        write(path, allocate(data, shape))
+    }
+
+    private fun write(path: Path, output: ByteBuffer) {
+        FileChannel.open(path,
+                         StandardOpenOption.WRITE,
+                         StandardOpenOption.CREATE).use {
+            output.rewind()
+            while (output.hasRemaining()) {
+                it.write(output)
             }
         }
+    }
 
-        internal fun allocate(data: ByteArray, shape: IntArray): ByteBuffer {
-            return Header(type = 'i', bytes = 1, shape = shape)
-                    .allocate().put(data)
+    internal fun allocate(data: BooleanArray, shape: IntArray): ByteBuffer {
+        val header = Header(order = null, type = 'b', bytes = 1, shape = shape)
+        return header.allocate().apply {
+            data.forEach { put(if (it) 1.toByte() else 0.toByte()) }
         }
+    }
 
-        internal fun allocate(data: ShortArray, shape: IntArray): ByteBuffer {
-            return Header(type = 'i', bytes = Shorts.BYTES, shape = shape)
-                    .allocate().apply { asShortBuffer().put(data) }
-        }
+    internal fun allocate(data: ByteArray, shape: IntArray): ByteBuffer {
+        return Header(type = 'i', bytes = 1, shape = shape)
+                .allocate().put(data)
+    }
 
-        internal fun allocate(data: IntArray, shape: IntArray): ByteBuffer {
-            return Header(type = 'i', bytes = Ints.BYTES, shape = shape)
-                    .allocate().apply { asIntBuffer().put(data) }
-        }
+    internal fun allocate(data: ShortArray, shape: IntArray): ByteBuffer {
+        return Header(type = 'i', bytes = Shorts.BYTES, shape = shape)
+                .allocate().apply { asShortBuffer().put(data) }
+    }
 
-        internal fun allocate(data: LongArray, shape: IntArray): ByteBuffer {
-            return Header(type = 'i', bytes = Longs.BYTES, shape = shape)
-                    .allocate().apply { asLongBuffer().put(data) }
-        }
+    internal fun allocate(data: IntArray, shape: IntArray): ByteBuffer {
+        return Header(type = 'i', bytes = Ints.BYTES, shape = shape)
+                .allocate().apply { asIntBuffer().put(data) }
+    }
 
-        internal fun allocate(data: FloatArray, shape: IntArray): ByteBuffer {
-            return Header(type = 'f', bytes = Floats.BYTES, shape = shape)
-                    .allocate().apply { asFloatBuffer().put(data) }
-        }
+    internal fun allocate(data: LongArray, shape: IntArray): ByteBuffer {
+        return Header(type = 'i', bytes = Longs.BYTES, shape = shape)
+                .allocate().apply { asLongBuffer().put(data) }
+    }
 
-        internal fun allocate(data: DoubleArray, shape: IntArray): ByteBuffer {
-            return Header(type = 'f', bytes = Doubles.BYTES, shape = shape)
-                    .allocate().apply { asDoubleBuffer().put(data) }
-        }
+    internal fun allocate(data: FloatArray, shape: IntArray): ByteBuffer {
+        return Header(type = 'f', bytes = Floats.BYTES, shape = shape)
+                .allocate().apply { asFloatBuffer().put(data) }
+    }
 
-        internal fun allocate(data: Array<String>, shape: IntArray): ByteBuffer {
-            val bytes = data.asSequence().map { it.length }.max() ?: 0
-            val header = Header(order = null, type = 'S', bytes = bytes, shape = shape)
-            return header.allocate().apply {
-                data.forEach {
-                    put(it.toByteArray(Charsets.US_ASCII).copyOf(bytes))
-                }
+    internal fun allocate(data: DoubleArray, shape: IntArray): ByteBuffer {
+        return Header(type = 'f', bytes = Doubles.BYTES, shape = shape)
+                .allocate().apply { asDoubleBuffer().put(data) }
+    }
+
+    internal fun allocate(data: Array<String>, shape: IntArray): ByteBuffer {
+        val bytes = data.asSequence().map { it.length }.max() ?: 0
+        val header = Header(order = null, type = 'S', bytes = bytes, shape = shape)
+        return header.allocate().apply {
+            data.forEach {
+                put(it.toByteArray(Charsets.US_ASCII).copyOf(bytes))
             }
         }
     }
