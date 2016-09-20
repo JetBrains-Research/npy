@@ -20,7 +20,9 @@ import java.util.zip.ZipOutputStream
  * doesn't expose it. So for instance the array named "X" will be
  * accessibly via "X" and **not** "X.npy".
  *
- * @sample npzExample
+ * Example:
+ *
+ * @sample [org.jetbrains.bio.npy.npzExample]
  */
 object NpzFile {
     /**

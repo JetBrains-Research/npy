@@ -1,5 +1,7 @@
 package org.jetbrains.bio.npy
 
+import com.google.common.collect.Iterators
+import com.google.common.collect.PeekingIterator
 import java.util.*
 
 /** A marker function for "impossible" `when` branches. */
@@ -12,20 +14,27 @@ internal inline fun IntArray.product() = this.reduce { a, b -> a * b}
 
 /** This is a very VERY basic parser for repr of Python dict. */
 internal fun parseDict(s: String): Map<String, Any> {
-    return parseDictInternal(Lexer(s))
+    return parseDictInternal(tokenize(s))
 }
 
-private fun parseDictInternal(lexer: Lexer): MutableMap<String, Any> {
+private fun parseDictInternal(lexer: PeekingIterator<SpannedToken>): MutableMap<String, Any> {
     val acc = HashMap<String, Any>()
     lexer.eat(Token.LBRA)
-    while (lexer.peekToken() !== Token.RBRA) {
-        val key = lexer.nextToken(Token.LIT::class.java).data
+    while (lexer.peek().token !== Token.RBRA) {
+        val key = lexer.eat(Token.STR).span.removeSurrounding("\'")
         lexer.eat(Token.SEMI)
-        val value: Any = lexer.peekToken().let {
-            if (it is Token.LPAR) {
+        val value: Any = lexer.peek().let {
+            if (it.token == Token.LPAR) {
                 parseTuple(lexer)
             } else {
-                lexer.nextToken().data!!
+                val st = lexer.next()
+                when (st.token) {
+                    Token.TRUE  -> true
+                    Token.FALSE -> false
+                    Token.INT   -> st.span.toInt()
+                    Token.STR   -> st.span.removeSurrounding("\'")
+                    else         -> error("Unexpected token: ${st.token}")
+                }
             }
         }
 
@@ -37,12 +46,12 @@ private fun parseDictInternal(lexer: Lexer): MutableMap<String, Any> {
     return acc
 }
 
-private fun parseTuple(lexer: Lexer): List<Int> {
+private fun parseTuple(lexer: PeekingIterator<SpannedToken>): List<Int> {
     lexer.eat(Token.LPAR)
     val acc = ArrayList<Int>()
-    while (lexer.peekToken() !== Token.RPAR) {
-        val item = lexer.nextToken(Token.INT::class.java)
-        acc.add(item.data)
+    while (lexer.peek().token != Token.RPAR) {
+        val item = lexer.eat(Token.INT)
+        acc.add(item.span.toInt())
         lexer.tryEat(Token.COMMA)
     }
     lexer.eat(Token.RPAR)
@@ -52,97 +61,49 @@ private fun parseTuple(lexer: Lexer): List<Int> {
     return acc
 }
 
-sealed class Token<out T>(val data: T) {
-    override fun toString(): String = javaClass.simpleName
+enum class Token(pattern: String) {
+    LBRA("\\{"), RBRA("\\}"),
+    LPAR("\\("), RPAR("\\)"),
+    COMMA(","),
+    SEMI(":"),
 
-    object LBRA : Token<Char>('{')
-    object RBRA : Token<Char>('}')
-    object LPAR : Token<Char>('(')
-    object RPAR : Token<Char>(')')
-    object COMMA : Token<Char>(',')
-    object SEMI : Token<Char>(':')
+    TRUE("True"), FALSE("False"),
+    INT("\\d+"),
+    STR("'[^']+'");
 
-    object TRUE : Token<Boolean>(true)
-    object FALSE : Token<Boolean>(false)
-    class LIT(data: String) : Token<String>(data)
-    class INT(data: Int) : Token<Int>(data)
+    val regex = "^$pattern".toRegex()
 }
 
-class Lexer(private val s: CharSequence) {
-    private var offset = 0
-    private var peeked: Token<*>? = null
+data class SpannedToken(val token: Token, val span: String)
 
-    @Suppress("unchecked_cast")
-    fun <T> nextToken(type: Class<out Token<T>>): Token<T> {
-        val token = nextToken()
-        check(token.javaClass === type) {
-            "Expected ${type.simpleName}, but got $token"
+fun tokenize(s: String): PeekingIterator<SpannedToken> {
+    var leftover = s
+    val tokens = generateSequence {
+        val best = Token.values().mapNotNull { token ->
+            token.regex.find(leftover)?.let { SpannedToken(token, it.value) }
+        }.maxBy { it.span.length }
+
+        if (best != null) {
+            leftover = leftover.substring(best.span.length)
+                    .dropWhile { it.isWhitespace() }
         }
-        return token as Token<T>
+
+        best
     }
 
-    fun nextToken(): Token<*> {
-        if (peeked != null) {
-            val token = peeked
-            peeked = null
-            return token!!
-        }
+    return Iterators.peekingIterator(tokens.iterator())
+}
 
-        while (s[offset].isWhitespace()) {
-            offset++
-        }
+private fun Iterator<SpannedToken>.eat(expected: Token): SpannedToken {
+    val st = next()
+    check(st.token == expected) { "Expected $expected, but got ${st.token}" }
+    return st
+}
 
-        return when (s[offset++]) {
-            '{' -> Token.LBRA
-            '}' -> Token.RBRA
-            '(' -> Token.LPAR
-            ')' -> Token.RPAR
-            ',' -> Token.COMMA
-            ':' -> Token.SEMI
-            '\'' -> {
-                val tick = offset
-                do {} while (s[offset++] != '\'')
-                Token.LIT(s.substring(tick, offset - 1))
-            }
-            in '0'..'9' -> {
-                val tick = offset - 1
-                do {} while (!isEof() && s[offset++].isDigit())
-                Token.INT(s.substring(tick, offset - 1).toInt())
-            }
-            else -> {
-                val tick = offset - 1
-                while (s[offset].isLetter()) {
-                    offset++
-                }
-
-                val token = s.substring(tick, offset)
-                when (token) {
-                    "False" -> Token.FALSE
-                    "True"  -> Token.TRUE
-                    else    -> error(token)
-                }
-            }
-        }
+private fun PeekingIterator<SpannedToken>.tryEat(expected: Token): SpannedToken? {
+    return if (hasNext() && peek().token == expected) {
+        next()
+    } else {
+        null
     }
-
-    fun peekToken(): Token<*> {
-        if (peeked == null) {
-            peeked = nextToken()
-        }
-
-        return peeked!!
-    }
-
-    fun eat(expected: Token<*>) {
-        val actual = nextToken()
-        check(actual === expected) { "Expected $expected, got $actual" }
-    }
-
-    fun tryEat(expected: Token<*>) {
-        if (!isEof() && peekToken() === expected) {
-            nextToken()
-        }
-    }
-
-    fun isEof() = offset == s.length
 }

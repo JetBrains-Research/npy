@@ -16,8 +16,6 @@ import java.util.*
 /**
  * A file in NPY format.
  *
- * @sample [npyExample]
- *
  * Currently unsupported types:
  *
  *   * unsigned integral types (treated as signed)
@@ -29,6 +27,10 @@ import java.util.*
  *   * intersections aka types for structured arrays.
  *
  * See http://docs.scipy.org/doc/numpy-dev/neps/npy-format.html
+ *
+ * Example:
+ *
+ * @sample [org.jetbrains.bio.npy.npyExample]
  */
 class NpyFile {
     /**
