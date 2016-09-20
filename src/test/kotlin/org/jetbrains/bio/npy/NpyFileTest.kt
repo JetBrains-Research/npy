@@ -14,50 +14,50 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class NpyFileTest {
-    @Test fun testWriteReadBooleans() = withTempFile("test", ".npy") { path ->
+    @Test fun writeReadBooleans() = withTempFile("test", ".npy") { path ->
         val data = booleanArrayOf(true, true, true, false)
         NpyFile.write(path, data)
         assertArrayEquals(data, NpyFile.read(path).asBooleanArray())
     }
 
-    @Test fun testWriteReadBytes() = withTempFile("test", ".npy") { path ->
+    @Test fun writeReadBytes() = withTempFile("test", ".npy") { path ->
         val data = byteArrayOf(1, 2, 3, 4)
         NpyFile.write(path, data)
         assertArrayEquals(data, NpyFile.read(path).asByteArray())
     }
 
-    @Test fun testWriteReadShorts() = withTempFile("test", ".npy") { path ->
+    @Test fun writeReadShorts() = withTempFile("test", ".npy") { path ->
         val data = shortArrayOf(1, 2, 3, 4)
         NpyFile.write(path, data)
         assertArrayEquals(data, NpyFile.read(path).asShortArray())
     }
 
-    @Test fun testWriteReadInts() = withTempFile("test", ".npy") { path ->
+    @Test fun writeReadInts() = withTempFile("test", ".npy") { path ->
         val data = intArrayOf(1, 2, 3, 4)
         NpyFile.write(path, data)
         assertArrayEquals(data, NpyFile.read(path).asIntArray())
     }
 
-    @Test fun testWriteReadLongs() = withTempFile("test", ".npy") { path ->
+    @Test fun writeReadLongs() = withTempFile("test", ".npy") { path ->
         val data = longArrayOf(1, 2, 3, 4)
         NpyFile.write(path, data)
         assertArrayEquals(data, NpyFile.read(path).asLongArray())
     }
 
-    @Test fun testWriteReadFloats() = withTempFile("test", ".npy") { path ->
+    @Test fun writeReadFloats() = withTempFile("test", ".npy") { path ->
         val data = floatArrayOf(1f, 2f, 3f, 4f)
         NpyFile.write(path, data)
         assertArrayEquals(data, NpyFile.read(path).asFloatArray(), Math.ulp(1f))
     }
 
-    @Test fun testWriteReadDoubles() = withTempFile("test", ".npy") { path ->
+    @Test fun writeReadDoubles() = withTempFile("test", ".npy") { path ->
         val data = doubleArrayOf(1.0, 2.0, 3.0, 4.0)
         NpyFile.write(path, data)
         assertArrayEquals(data, NpyFile.read(path).asDoubleArray(), Math.ulp(1.0))
     }
 
     @Suppress("unchecked_cast")
-    @Test fun testWriteReadStrings() = withTempFile("test", ".npy") { path ->
+    @Test fun writeReadStrings() = withTempFile("test", ".npy") { path ->
         val data = arrayOf("foo", "bar", "bazooka")
         NpyFile.write(path, data)
         assertArrayEquals(data, NpyFile.read(path).asStringArray())
@@ -124,7 +124,7 @@ class NpyFileNumPyTest {
         return rc == 0
     }
 
-    @Test fun testWriteRead() {
+    @Test fun writeRead() {
         if (!hasNumPy) {
             return
         }
