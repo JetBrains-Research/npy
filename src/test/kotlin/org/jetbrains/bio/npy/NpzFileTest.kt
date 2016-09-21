@@ -2,6 +2,10 @@ package org.jetbrains.bio.npy
 
 import org.junit.Assert.assertArrayEquals
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.Parameterized
+import org.junit.runners.Parameterized.Parameters
+import java.nio.ByteOrder
 import kotlin.test.assertEquals
 
 /**
@@ -65,12 +69,16 @@ class NpzFileTest {
             assertArrayEquals(arrayOf("aha", "hah"), npzf["x_S3"].asStringArray())
         }
     }
+}
 
-    @Test fun create() {
+@RunWith(Parameterized::class)
+class NpzFileWriteReadTest(private val order: ByteOrder) {
+    @Test fun writeRead() {
         withTempFile("test", ".npz") { path ->
             NpzFile.write(path).use {
                 it.write("x_b", booleanArrayOf(true, true, true, false))
-                it.write("x_i4", intArrayOf(1, 2, 3, 4))
+                it.write("x_i4", intArrayOf(1, 2, 3, 4),
+                         order = order)
             }
 
             NpzFile.read(path).use { npzf ->
@@ -81,23 +89,24 @@ class NpzFileTest {
         }
     }
 
-    @Test fun createNested() {
+    @Test fun writeReadNested() {
         withTempFile("test", ".npz") { path ->
             NpzFile.write(path).use {
-                it.write("foo/bar/baz/x_b", booleanArrayOf(true, true, true, false))
+                it.write("foo/bar/baz/x_i4", intArrayOf(1, 2, 3, 4), order = order)
             }
 
             NpzFile.read(path).use { npzf ->
-                assertArrayEquals(booleanArrayOf(true, true, true, false),
-                                  npzf["foo/bar/baz/x_b"].asBooleanArray())
+                assertArrayEquals(intArrayOf(1, 2, 3, 4),
+                                  npzf["foo/bar/baz/x_i4"].asIntArray())
             }
         }
     }
 
-    @Test fun createNd() {
+    @Test fun writeReadNd() {
         withTempFile("test", ".npz") { path ->
             NpzFile.write(path).use {
-                it.write("x_i4", intArrayOf(1, 2, 3, 4), shape = intArrayOf(2, 2))
+                it.write("x_i4", intArrayOf(1, 2, 3, 4), shape = intArrayOf(2, 2),
+                         order = order)
             }
 
             NpzFile.read(path).use { npzf ->
@@ -106,5 +115,12 @@ class NpzFileTest {
                                   npzf["x_i4"].asIntArray())
             }
         }
+    }
+
+    companion object {
+        @JvmStatic
+        @Parameters(name = "{0}")
+        fun `data`(): Collection<Any> = listOf(ByteOrder.BIG_ENDIAN,
+                                               ByteOrder.LITTLE_ENDIAN)
     }
 }

@@ -6,14 +6,17 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 import org.junit.runners.Parameterized.Parameters
+import java.io.IOError
 import java.lang.ProcessBuilder.Redirect
+import java.nio.ByteOrder
 import java.nio.channels.FileChannel
 import java.nio.file.Files
 import java.nio.file.StandardOpenOption
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class NpyFileTest {
+@RunWith(Parameterized::class)
+class NpyFileTest(private val order: ByteOrder) {
     @Test fun writeReadBooleans() = withTempFile("test", ".npy") { path ->
         val data = booleanArrayOf(true, true, true, false)
         NpyFile.write(path, data)
@@ -28,31 +31,31 @@ class NpyFileTest {
 
     @Test fun writeReadShorts() = withTempFile("test", ".npy") { path ->
         val data = shortArrayOf(1, 2, 3, 4)
-        NpyFile.write(path, data)
+        NpyFile.write(path, data, order = order)
         assertArrayEquals(data, NpyFile.read(path).asShortArray())
     }
 
     @Test fun writeReadInts() = withTempFile("test", ".npy") { path ->
         val data = intArrayOf(1, 2, 3, 4)
-        NpyFile.write(path, data)
+        NpyFile.write(path, data, order = order)
         assertArrayEquals(data, NpyFile.read(path).asIntArray())
     }
 
     @Test fun writeReadLongs() = withTempFile("test", ".npy") { path ->
         val data = longArrayOf(1, 2, 3, 4)
-        NpyFile.write(path, data)
+        NpyFile.write(path, data, order = order)
         assertArrayEquals(data, NpyFile.read(path).asLongArray())
     }
 
     @Test fun writeReadFloats() = withTempFile("test", ".npy") { path ->
         val data = floatArrayOf(1f, 2f, 3f, 4f)
-        NpyFile.write(path, data)
+        NpyFile.write(path, data, order = order)
         assertArrayEquals(data, NpyFile.read(path).asFloatArray(), Math.ulp(1f))
     }
 
     @Test fun writeReadDoubles() = withTempFile("test", ".npy") { path ->
         val data = doubleArrayOf(1.0, 2.0, 3.0, 4.0)
-        NpyFile.write(path, data)
+        NpyFile.write(path, data, order = order)
         assertArrayEquals(data, NpyFile.read(path).asDoubleArray(), Math.ulp(1.0))
     }
 
@@ -61,6 +64,13 @@ class NpyFileTest {
         val data = arrayOf("foo", "bar", "bazooka")
         NpyFile.write(path, data)
         assertArrayEquals(data, NpyFile.read(path).asStringArray())
+    }
+    
+    companion object {
+        @JvmStatic
+        @Parameters(name = "{0}") 
+        fun `data`(): Collection<Any> = listOf(ByteOrder.BIG_ENDIAN,
+                                               ByteOrder.LITTLE_ENDIAN)
     }
 }
 
@@ -120,8 +130,12 @@ class NpyFileHeaderTest {
 
 class NpyFileNumPyTest {
     private val hasNumPy: Boolean get() {
-        val (rc, _output) = command("python", "-c", "import numpy")
-        return rc == 0
+        try {
+            val (rc, _output) = command("python", "-c", "import numpy")
+            return rc == 0
+        } catch(e: IOError) {
+            return false  // No Python?
+        }
     }
 
     @Test fun writeRead() {
