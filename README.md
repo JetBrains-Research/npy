@@ -4,6 +4,44 @@ npy [![Build Status](https://travis-ci.org/JetBrains-Research/npy.svg?branch=mas
 `npy` allows to read and write files in [NPY] [npy] and [NPZ] [npy] formats
 on the JVM.
 
+Examples
+--------
+
+### NPY
+
+```kotlin
+val values = intArrayOf(1, 2, 3, 4, 5, 6)
+val path = Paths.get("sample.npy")
+NpyFile.write(path, values, shape = intArrayOf(2, 3))
+
+println(NpyFile.read(path))
+// => NpyArray{data=[1, 2, 3, 4, 5, 6], shape=[2, 3]}
+```
+
+### NPZ
+
+```kotlin
+val values1 = intArrayOf(1, 2, 3, 4, 5, 6)
+val values2 = booleanArrayOf(true, false)
+val path = Paths.get("sample.npz")
+
+NpzFile.write(path).use {
+    it.write("xs", values1, shape = intArrayOf(2, 3))
+    it.write("mask", values2)
+}
+
+NpzFile.read(path).use {
+    println(it.introspect())
+    // => [NpzEntry{name=xs, type=int, shape=[2, 3]},
+    //     NpzEntry{name=mask, type=boolean, shape=[2]}]
+
+    println("xs   = ${it["xs"]}")
+    println("mask = ${it["mask"]}")
+    // => xs   = NpyArray{data=[1, 2, 3, 4, 5, 6], shape=[2, 3]}
+    //    mask = NpyArray{data=[true, false], shape=[2]}
+}
+```
+
 Installation
 ------------
 
