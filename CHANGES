@@ -15,7 +15,7 @@ Version 0.2.1
 
 Bugfix release, released on March 23rd, 2016
 
-- Fixed metadata in NPY files created by 'NpyFile.write'. See
+- Fixed metadata in NPY files created by `NpyFile.write`. See
   issue #4 on GitHub.
 
 Version 0.2.0
@@ -23,10 +23,10 @@ Version 0.2.0
 
 Released on February 17th, 2016
 
-- Unified reading and writing API of 'NpzFile'.
-- Added 'NpzFile.Reader#introspect' for exploring the metadata of an
+- Unified reading and writing API of `NpzFile`.
+- Added `NpzFile.Reader.introspect` for exploring the metadata of an
   NPZ file without reading whole arrays.
-- Fixed 'NpyFile' behaviour for arrays with strings of different lengths.
+- Fixed `NpyFile` behaviour for arrays with strings of different lengths.
 
 Version 0.1.0
 -------------
