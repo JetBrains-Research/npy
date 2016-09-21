@@ -1,0 +1,24 @@
+version: "{branch} {build}"
+clone_depth: 10
+environment:
+  matrix:
+    - JAVA_HOME: C:\Program Files\Java\jdk1.8.0
+    - JAVA_HOME: C:\Program Files (x86)\Java\jdk1.8.0
+
+install:
+  - java -version
+  - gradlew.bat --version
+
+build:
+  verbosity: detailed
+build_script:
+  - gradlew.bat -u -i assemble
+
+test_script:
+  - gradlew.bat -u -i -S check
+
+cache:
+  - C:\Users\appveyor\.gradle
+
+matrix:
+  fast_finish: true

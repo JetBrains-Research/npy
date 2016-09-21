@@ -1,4 +1,5 @@
-npy [![Build Status](https://travis-ci.org/JetBrains-Research/npy.svg?branch=master)](https://travis-ci.org/JetBrains-Research/npy)
+npy
+[![Build Status](https://travis-ci.org/JetBrains-Research/npy.svg?branch=master)](https://travis-ci.org/JetBrains-Research/npy) [![Build status](https://ci.appveyor.com/api/projects/status/065b7jsxfxao374q?svg=true)](https://ci.appveyor.com/project/superbobry/npy)
 ===
 
 `npy` allows to read and write files in [NPY] [npy] and [NPZ] [npy] formats
