@@ -1,5 +1,6 @@
 package org.jetbrains.bio.npy
 
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -19,6 +20,11 @@ internal inline fun withTempFile(prefix: String, suffix: String,
     try {
         block(path)
     } finally {
-        Files.delete(path)
+        try {
+            Files.delete(path)
+        } catch (e: IOException) {
+            // Mmaped buffer not yet garbage collected. Leave it to the VM.
+            path.toFile().deleteOnExit()
+        }
     }
 }
