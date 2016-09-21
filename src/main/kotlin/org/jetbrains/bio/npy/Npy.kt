@@ -3,6 +3,7 @@ package org.jetbrains.bio.npy
 import com.google.common.base.Charsets
 import com.google.common.base.MoreObjects
 import com.google.common.base.Strings
+import com.google.common.collect.Iterables
 import com.google.common.primitives.*
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -43,7 +44,7 @@ object NpyFile {
      * By default a more common 1.0 format is used.
      */
     internal data class Header(val major: Int = 1, val minor: Int = 0,
-                               val order: ByteOrder? = ByteOrder.nativeOrder(),
+                               val order: ByteOrder? = null,
                                val type: Char, val bytes: Int,
                                val shape: IntArray) {
         init {
@@ -78,29 +79,25 @@ object NpyFile {
          * guaranteed to be in correct [ByteOrder].
          */
         fun allocate(): ByteBuffer {
-            val size = shape.product()
             val total = MAGIC.size + 2 + when (major to minor) {
-                    1 to 0 -> 2
-                    2 to 0 -> 4
-                    else -> impossible()
-            } + meta.size + bytes * size
+                1 to 0 -> 2
+                2 to 0 -> 4
+                else   -> impossible()
+            } + meta.size
 
-            return ByteBuffer.allocate(total).apply {
+            return ByteBuffer.allocateDirect(total).apply {
                 order(ByteOrder.LITTLE_ENDIAN)
                 put(MAGIC)
                 put(major.toByte())
                 put(minor.toByte())
 
                 when (major to minor) {
-                    1 to 0 -> {
-                        check(meta.size <= Short.MAX_VALUE)
-                        putShort(meta.size.toShort())
-                    }
+                    1 to 0 -> putShort(Shorts.checkedCast(meta.size.toLong()))
                     2 to 0 -> putInt(meta.size)
                 }
 
                 put(meta)
-                order(order ?: ByteOrder.nativeOrder())
+                rewind()
             }
         }
 
@@ -139,8 +136,6 @@ object NpyFile {
                 val header = ByteArray(size)
                 get(header)
 
-                // XXX this is very fragile. A proper implementation would
-                //     require a Python parser.
                 val meta = parseDict(String(header))
                 val dtype = meta["descr"] as String
                 check(!(meta["fortran_order"] as Boolean)) {
@@ -217,32 +212,37 @@ object NpyFile {
 
     @JvmOverloads
     @JvmStatic fun write(path: Path, data: ShortArray,
-                         shape: IntArray = intArrayOf(data.size)) {
-        write(path, allocate(data, shape))
+                         shape: IntArray = intArrayOf(data.size),
+                         order: ByteOrder = ByteOrder.nativeOrder()) {
+        write(path, allocate(data, shape, order))
     }
 
     @JvmOverloads
     @JvmStatic fun write(path: Path, data: IntArray,
-                         shape: IntArray = intArrayOf(data.size)) {
-        write(path, allocate(data, shape))
+                         shape: IntArray = intArrayOf(data.size),
+                         order: ByteOrder = ByteOrder.nativeOrder()) {
+        write(path, allocate(data, shape, order))
     }
 
     @JvmOverloads
     @JvmStatic fun write(path: Path, data: LongArray,
-                         shape: IntArray = intArrayOf(data.size)) {
-        write(path, allocate(data, shape))
+                         shape: IntArray = intArrayOf(data.size),
+                         order: ByteOrder = ByteOrder.nativeOrder()) {
+        write(path, allocate(data, shape, order))
     }
 
     @JvmOverloads
     @JvmStatic fun write(path: Path, data: FloatArray,
-                         shape: IntArray = intArrayOf(data.size)) {
-        write(path, allocate(data, shape))
+                         shape: IntArray = intArrayOf(data.size),
+                         order: ByteOrder = ByteOrder.nativeOrder()) {
+        write(path, allocate(data, shape, order))
     }
 
     @JvmOverloads
     @JvmStatic fun write(path: Path, data: DoubleArray,
-                         shape: IntArray = intArrayOf(data.size)) {
-        write(path, allocate(data, shape))
+                         shape: IntArray = intArrayOf(data.size),
+                         order: ByteOrder = ByteOrder.nativeOrder()) {
+        write(path, allocate(data, shape, order))
     }
 
     @JvmOverloads
@@ -251,62 +251,70 @@ object NpyFile {
         write(path, allocate(data, shape))
     }
 
-    private fun write(path: Path, output: ByteBuffer) {
+    private fun write(path: Path, chunks: Iterable<ByteBuffer>) {
         FileChannel.open(path,
                          StandardOpenOption.WRITE,
                          StandardOpenOption.CREATE).use {
-            output.rewind()
-            while (output.hasRemaining()) {
-                it.write(output)
+
+            for (chunk in chunks) {
+                while (chunk.hasRemaining()) {
+                    it.write(chunk)
+                }
             }
         }
     }
 
-    internal fun allocate(data: BooleanArray, shape: IntArray): ByteBuffer {
+    internal fun allocate(data: BooleanArray, shape: IntArray): Iterable<ByteBuffer> {
         val header = Header(order = null, type = 'b', bytes = 1, shape = shape)
-        return header.allocate().apply {
-            data.forEach { put(if (it) 1.toByte() else 0.toByte()) }
-        }
+        return Iterables.concat(listOf(header.allocate()),
+                                BooleanArraySplitBuffer(data))
     }
 
-    internal fun allocate(data: ByteArray, shape: IntArray): ByteBuffer {
-        return Header(type = 'i', bytes = 1, shape = shape)
-                .allocate().put(data)
+    internal fun allocate(data: ByteArray, shape: IntArray): Iterable<ByteBuffer> {
+        val header = Header(order = null, type = 'i', bytes = 1, shape = shape)
+        return listOf(header.allocate(), ByteBuffer.wrap(data))
     }
 
-    internal fun allocate(data: ShortArray, shape: IntArray): ByteBuffer {
-        return Header(type = 'i', bytes = Shorts.BYTES, shape = shape)
-                .allocate().apply { asShortBuffer().put(data) }
+    internal fun allocate(data: ShortArray, shape: IntArray,
+                          order: ByteOrder): Iterable<ByteBuffer> {
+        val header = Header(order = order, type = 'i', bytes = Shorts.BYTES, shape = shape)
+        return Iterables.concat(listOf(header.allocate()),
+                                ShortArraySplitBuffer(data, order))
     }
 
-    internal fun allocate(data: IntArray, shape: IntArray): ByteBuffer {
-        return Header(type = 'i', bytes = Ints.BYTES, shape = shape)
-                .allocate().apply { asIntBuffer().put(data) }
+    internal fun allocate(data: IntArray, shape: IntArray,
+                          order: ByteOrder): Iterable<ByteBuffer> {
+        val header = Header(order = order, type = 'i', bytes = Ints.BYTES, shape = shape)
+        return Iterables.concat(listOf(header.allocate()),
+                                IntArraySplitBuffer(data, order))
     }
 
-    internal fun allocate(data: LongArray, shape: IntArray): ByteBuffer {
-        return Header(type = 'i', bytes = Longs.BYTES, shape = shape)
-                .allocate().apply { asLongBuffer().put(data) }
+    internal fun allocate(data: LongArray, shape: IntArray,
+                          order: ByteOrder): Iterable<ByteBuffer> {
+        val header = Header(order = order, type = 'i', bytes = Longs.BYTES, shape = shape)
+        return Iterables.concat(listOf(header.allocate()),
+                                LongArraySplitBuffer(data, order))
     }
 
-    internal fun allocate(data: FloatArray, shape: IntArray): ByteBuffer {
-        return Header(type = 'f', bytes = Floats.BYTES, shape = shape)
-                .allocate().apply { asFloatBuffer().put(data) }
+    internal fun allocate(data: FloatArray, shape: IntArray,
+                          order: ByteOrder): Iterable<ByteBuffer> {
+        val header = Header(order = order, type = 'f', bytes = Floats.BYTES, shape = shape)
+        return Iterables.concat(listOf(header.allocate()),
+                                FloatArraySplitBuffer(data, order))
     }
 
-    internal fun allocate(data: DoubleArray, shape: IntArray): ByteBuffer {
-        return Header(type = 'f', bytes = Doubles.BYTES, shape = shape)
-                .allocate().apply { asDoubleBuffer().put(data) }
+    internal fun allocate(data: DoubleArray, shape: IntArray,
+                          order: ByteOrder): Iterable<ByteBuffer> {
+        val header = Header(order = order, type = 'f', bytes = Doubles.BYTES, shape = shape)
+        return Iterables.concat(listOf(header.allocate()),
+                                DoubleArraySplitBuffer(data, order))
     }
 
-    internal fun allocate(data: Array<String>, shape: IntArray): ByteBuffer {
+    internal fun allocate(data: Array<String>, shape: IntArray): Iterable<ByteBuffer> {
         val bytes = data.asSequence().map { it.length }.max() ?: 0
         val header = Header(order = null, type = 'S', bytes = bytes, shape = shape)
-        return header.allocate().apply {
-            data.forEach {
-                put(it.toByteArray(Charsets.US_ASCII).copyOf(bytes))
-            }
-        }
+        return Iterables.concat(listOf(header.allocate()),
+                                StringArraySplitBuffer(data))
     }
 }
 

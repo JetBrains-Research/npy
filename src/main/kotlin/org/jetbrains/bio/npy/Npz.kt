@@ -3,6 +3,7 @@ package org.jetbrains.bio.npy
 import com.google.common.base.MoreObjects
 import java.io.Closeable
 import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.nio.channels.Channels
 import java.nio.file.Files
 import java.nio.file.Path
@@ -103,64 +104,77 @@ object NpzFile {
 
         @JvmOverloads
         fun write(name: String, data: BooleanArray, shape: IntArray = intArrayOf(data.size)) {
-            withEntry(name) { NpyFile.allocate(data, shape) }
+            writeEntry(name) { NpyFile.allocate(data, shape) }
         }
 
         @JvmOverloads
         fun write(name: String, data: ByteArray, shape: IntArray = intArrayOf(data.size)) {
-            withEntry(name) { NpyFile.allocate(data, shape) }
+            writeEntry(name) { NpyFile.allocate(data, shape) }
         }
 
         @JvmOverloads
-        fun write(name: String, data: ShortArray, shape: IntArray = intArrayOf(data.size)) {
-            withEntry(name) { NpyFile.allocate(data, shape) }
+        fun write(name: String, data: ShortArray, shape: IntArray = intArrayOf(data.size),
+                  order: ByteOrder = ByteOrder.nativeOrder()) {
+            writeEntry(name) { NpyFile.allocate(data, shape, order) }
         }
 
         @JvmOverloads
-        fun write(name: String, data: IntArray, shape: IntArray = intArrayOf(data.size)) {
-            withEntry(name) { NpyFile.allocate(data, shape) }
+        fun write(name: String, data: IntArray, shape: IntArray = intArrayOf(data.size),
+                  order: ByteOrder = ByteOrder.nativeOrder()) {
+            writeEntry(name) { NpyFile.allocate(data, shape, order) }
         }
 
         @JvmOverloads
-        fun write(name: String, data: LongArray, shape: IntArray = intArrayOf(data.size)) {
-            withEntry(name) { NpyFile.allocate(data, shape) }
+        fun write(name: String, data: LongArray, shape: IntArray = intArrayOf(data.size),
+                  order: ByteOrder = ByteOrder.nativeOrder()) {
+            writeEntry(name) { NpyFile.allocate(data, shape, order) }
         }
 
         @JvmOverloads
-        fun write(name: String, data: FloatArray, shape: IntArray = intArrayOf(data.size)) {
-            withEntry(name) { NpyFile.allocate(data, shape) }
+        fun write(name: String, data: FloatArray, shape: IntArray = intArrayOf(data.size),
+                  order: ByteOrder = ByteOrder.nativeOrder()) {
+            writeEntry(name) { NpyFile.allocate(data, shape, order) }
         }
 
         @JvmOverloads
-        fun write(name: String, data: DoubleArray, shape: IntArray = intArrayOf(data.size)) {
-            withEntry(name) { NpyFile.allocate(data, shape) }
+        fun write(name: String, data: DoubleArray, shape: IntArray = intArrayOf(data.size),
+                  order: ByteOrder = ByteOrder.nativeOrder()) {
+            writeEntry(name) { NpyFile.allocate(data, shape, order) }
         }
 
         @JvmOverloads
         fun write(name: String, data: Array<String>, shape: IntArray = intArrayOf(data.size)) {
-            withEntry(name) { NpyFile.allocate(data, shape) }
+            writeEntry(name) { NpyFile.allocate(data, shape) }
         }
 
-        private inline fun withEntry(name: String, block: () -> ByteBuffer) {
-            val output = block()
-            output.rewind()
-
+        private inline fun writeEntry(name: String, block: () -> Iterable<ByteBuffer>) {
+            val chunks = block()
             val entry = ZipEntry(name + ".npy").apply {
                 if (compressed) {
                     method = ZipEntry.DEFLATED
                 } else {
                     method = ZipEntry.STORED
-                    size = output.capacity().toLong()
-                    crc = CRC32().apply { update(output) }.value
-                    output.rewind()
+
+                    val crcAcc = CRC32()
+                    var sizeAcc = 0L
+                    for (chunk in chunks) {
+                        sizeAcc += chunk.capacity().toLong()
+                        crcAcc.update(chunk)
+                        chunk.rewind()
+                    }
+
+                    size = sizeAcc
+                    crc = crcAcc.value
                 }
             }
 
             zos.putNextEntry(entry)
             try {
                 val fc = Channels.newChannel(zos)
-                while (output.hasRemaining()) {
-                    fc.write(output)
+                for (chunk in chunks) {
+                    while (chunk.hasRemaining()) {
+                        fc.write(chunk)
+                    }
                 }
             } finally {
                 zos.closeEntry()
