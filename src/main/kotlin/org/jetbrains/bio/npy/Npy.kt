@@ -3,6 +3,7 @@ package org.jetbrains.bio.npy
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.channels.FileChannel
+import java.nio.channels.FileChannel.MapMode
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -148,42 +149,61 @@ object NpyFile {
      * The caller is responsible for coercing the resulting array to
      * an appropriate type via [NpyArray] methods.
      */
-    @JvmStatic fun read(path: Path): NpyArray = FileChannel.open(path).use {
-        read(it.map(FileChannel.MapMode.READ_ONLY, 0, Files.size(path)))
+    @JvmStatic fun read(path: Path, step: Int = Int.MAX_VALUE): NpyArray {
+        return FileChannel.open(path).use {
+            var remaining = Files.size(path)
+            var chunk = ByteBuffer.allocate(0)
+            read(generateSequence {
+                // Make sure we don't miss any unaligned bytes.
+                remaining += chunk.remaining()
+                if (remaining == 0L) {
+                    null
+                } else {
+                    val offset = Files.size(path) - remaining
+                    chunk = it.map(
+                            MapMode.READ_ONLY, offset,
+                            if (remaining > step) step.toLong() else remaining)
+
+                    remaining -= chunk.capacity()
+                    chunk
+                }
+            })
+        }
     }
 
-    internal fun read(input: ByteBuffer): NpyArray {
-        val header = Header.read(input)
+    internal fun read(chunks: Sequence<ByteBuffer>): NpyArray {
+        // XXX we have to make it peeking, because otherwise
+        //     the first chunk would be gone.
+        val it = PeekingIterator(chunks.iterator())
+        val header = Header.read(it.peek())
         val size = header.shape.product()
-        check(input.remaining() == header.bytes * size)
-        val data: Any = with(input.order(header.order)) {
-            when (header.type) {
-                'b' -> {
-                    check(header.bytes == 1)
-                    BooleanArray(size) { get() == 1.toByte() }
-                }
-                'u', 'i' -> when (header.bytes) {
-                    1 -> ByteArray(size).apply { get(this) }
-                    2 -> ShortArray(size).apply { asShortBuffer().get(this) }
-                    4 -> IntArray(size).apply { asIntBuffer().get(this) }
-                    8 -> LongArray(size).apply { asLongBuffer().get(this) }
-                    else -> error("invalid number of bytes for ${header.type}: ${header.bytes}")
-                }
-                'f' -> when (header.bytes) {
-                    4 -> FloatArray(size).apply { asFloatBuffer().get(this) }
-                    8 -> DoubleArray(size).apply { asDoubleBuffer().get(this) }
-                    else -> error("invalid number of bytes for ${header.type}: ${header.bytes}")
-                }
-                'S' -> Array(size) {
-                    val s = ByteArray(header.bytes)
-                    get(s)
-                    String(s, Charsets.US_ASCII).trimEnd('\u0000')
-                }
-                else -> error("unsupported type: ${header.type}")
+        val merger = when (header.type) {
+            'b' -> {
+                check(header.bytes == 1)
+                BooleanArrayMerger(size)
             }
+            'u', 'i' -> when (header.bytes) {
+                1 -> ByteArrayMerger(size)
+                2 -> ShortArrayMerger(size)
+                4 -> IntArrayMerger(size)
+                8 -> LongArrayMerger(size)
+                else -> error("invalid number of bytes for ${header.type}: ${header.bytes}")
+            }
+            'f' -> when (header.bytes) {
+                4 -> FloatArrayMerger(size)
+                8 -> DoubleArrayMerger(size)
+                else -> error("invalid number of bytes for ${header.type}: ${header.bytes}")
+            }
+            'S' -> StringArrayMerger(size, header.bytes)
+            else -> error("unsupported type: ${header.type}")
         }
 
-        return NpyArray(data, header.shape)
+        for (chunk in it) {
+            chunk.order(header.order)
+            merger(chunk)
+        }
+
+        return NpyArray(merger.result(), header.shape)
     }
 
     /**
@@ -257,7 +277,7 @@ object NpyFile {
 
     internal fun allocate(data: BooleanArray, shape: IntArray): Sequence<ByteBuffer> {
         val header = Header(order = null, type = 'b', bytes = 1, shape = shape)
-        return sequenceOf(header.allocate()) + BooleanArraySplitBuffer(data)
+        return sequenceOf(header.allocate()) + BooleanArrayChunker(data)
     }
 
     internal fun allocate(data: ByteArray, shape: IntArray): Sequence<ByteBuffer> {
@@ -269,41 +289,41 @@ object NpyFile {
                           order: ByteOrder): Sequence<ByteBuffer> {
         val header = Header(order = order, type = 'i',
                             bytes = java.lang.Short.BYTES, shape = shape)
-        return sequenceOf(header.allocate()) + ShortArraySplitBuffer(data, order)
+        return sequenceOf(header.allocate()) + ShortArrayChunker(data, order)
     }
 
     internal fun allocate(data: IntArray, shape: IntArray,
                           order: ByteOrder): Sequence<ByteBuffer> {
         val header = Header(order = order, type = 'i',
                             bytes = java.lang.Integer.BYTES, shape = shape)
-        return sequenceOf(header.allocate()) + IntArraySplitBuffer(data, order)
+        return sequenceOf(header.allocate()) + IntArrayChunker(data, order)
     }
 
     internal fun allocate(data: LongArray, shape: IntArray,
                           order: ByteOrder): Sequence<ByteBuffer> {
         val header = Header(order = order, type = 'i',
                             bytes = java.lang.Long.BYTES, shape = shape)
-        return sequenceOf(header.allocate()) + LongArraySplitBuffer(data, order)
+        return sequenceOf(header.allocate()) + LongArrayChunker(data, order)
     }
 
     internal fun allocate(data: FloatArray, shape: IntArray,
                           order: ByteOrder): Sequence<ByteBuffer> {
         val header = Header(order = order, type = 'f',
                             bytes = java.lang.Float.BYTES, shape = shape)
-        return sequenceOf(header.allocate()) + FloatArraySplitBuffer(data, order)
+        return sequenceOf(header.allocate()) + FloatArrayChunker(data, order)
     }
 
     internal fun allocate(data: DoubleArray, shape: IntArray,
                           order: ByteOrder): Sequence<ByteBuffer> {
         val header = Header(order = order, type = 'f',
                             bytes = java.lang.Double.BYTES, shape = shape)
-        return sequenceOf(header.allocate()) + DoubleArraySplitBuffer(data, order)
+        return sequenceOf(header.allocate()) + DoubleArrayChunker(data, order)
     }
 
     internal fun allocate(data: Array<String>, shape: IntArray): Sequence<ByteBuffer> {
         val bytes = data.asSequence().map { it.length }.max() ?: 0
         val header = Header(order = null, type = 'S', bytes = bytes, shape = shape)
-        return sequenceOf(header.allocate()) + StringArraySplitBuffer(data)
+        return sequenceOf(header.allocate()) + StringArrayChunker(data)
     }
 }
 
