@@ -40,7 +40,7 @@ object NpzFile {
          * @since 0.2.0
          */
         fun introspect() = zf.entries().asSequence().map {
-            val header = NpyFile.Header.read(zf.getBuffer(it))
+            val header = NpyFile.Header.read(zf.getBuffers(it, Integer.MAX_VALUE).first())
             val type = when (header.type) {
                 'b' -> Boolean::class.java
                 'i', 'u' -> when (header.bytes) {
@@ -68,18 +68,29 @@ object NpzFile {
          * The caller is responsible for casting the resulting array to an
          * appropriate type.
          */
-        operator fun get(name: String): NpyArray {
-            return NpyFile.read(zf.getBuffer(zf.getEntry(name + ".npy")))
+        operator fun get(name: String, step: Int = Int.MAX_VALUE): NpyArray {
+            return NpyFile.read(zf.getBuffers(zf.getEntry(name + ".npy"), step))
         }
 
-        private fun ZipFile.getBuffer(entry: ZipEntry): ByteBuffer {
-            val input = ByteBuffer.allocate(entry.size.toInt())
-            getInputStream(entry).use {
-                Channels.newChannel(it).read(input)
-            }
+        private fun ZipFile.getBuffers(entry: ZipEntry, step: Int): Sequence<ByteBuffer> {
+            val `is` = getInputStream(entry)
+            var chunk = ByteBuffer.allocate(0)
+            return generateSequence {
+                val remaining = `is`.available() + chunk.remaining()
+                if (remaining > 0) {
+                    chunk = ByteBuffer.allocate(Math.min(remaining, step)).apply {
+                        // Make sure we don't miss any unaligned bytes.
+                        put(chunk)
+                        Channels.newChannel(`is`).read(this)
+                        rewind()
+                    }.asReadOnlyBuffer()
 
-            input.rewind()
-            return input.asReadOnlyBuffer()
+                    chunk
+                } else {
+                    `is`.close()
+                    null
+                }
+            }
         }
 
         override fun close() = zf.close()

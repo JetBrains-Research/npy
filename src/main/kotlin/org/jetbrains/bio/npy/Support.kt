@@ -110,7 +110,7 @@ private fun PeekingIterator<SpannedToken>.tryEat(expected: Token): SpannedToken?
 }
 
 // XXX doesn't support iterators which might yield null.
-private class PeekingIterator<out T>(private val it: Iterator<T>): Iterator<T> {
+internal class PeekingIterator<out T>(private val it: Iterator<T>): Iterator<T> {
     private var hasPeeked = false
     private var item: T? = null
 

@@ -117,6 +117,19 @@ class NpzFileWriteReadTest(private val order: ByteOrder) {
         }
     }
 
+    @Test fun writeReadUnaligned() {
+        withTempFile("test", ".npz") { path ->
+            val data = IntArray(65536) { it }
+            NpzFile.write(path).use {
+                it.write("x_i4", data, order = order)
+            }
+
+            NpzFile.read(path).use { npzf ->
+                assertArrayEquals(data, npzf.get("x_i4", step = 123).asIntArray())
+            }
+        }
+    }
+
     companion object {
         @JvmStatic
         @Parameters(name = "{0}")

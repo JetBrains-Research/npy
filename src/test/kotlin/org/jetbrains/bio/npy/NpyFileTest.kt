@@ -11,6 +11,7 @@ import java.nio.ByteOrder
 import java.nio.channels.FileChannel
 import java.nio.file.Files
 import java.nio.file.StandardOpenOption
+import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -161,5 +162,21 @@ class NpyFileNumPyTest {
 
         val rc = p.waitFor()
         return rc to p.inputStream.bufferedReader().readText()
+    }
+}
+
+class NpyFileStressTest {
+    @Test(expected = IllegalStateException::class)
+    fun readRandom() = withTempFile("test", ".npy") { path ->
+        val r = Random()
+        Files.write(path, ByteArray(65536) { r.nextInt().toByte() })
+        NpyFile.read(path)
+    }
+
+    @Test fun writeReadUnaligned() = withTempFile("test", ".npy") { path ->
+        val data = Random().doubles(65536).toArray()
+        NpyFile.write(path, data)
+        assertArrayEquals(data, NpyFile.read(path, step=123).asDoubleArray(),
+                          Math.ulp(1.0))
     }
 }

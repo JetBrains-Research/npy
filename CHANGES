@@ -6,6 +6,8 @@ Here you can see the full list of changes between each npy release.
 Version 0.3.2
 -------------
 
+- Fixed reading large (> 2G) NPY and NPZ files.
+
 Version 0.3.1
 -------------
 
