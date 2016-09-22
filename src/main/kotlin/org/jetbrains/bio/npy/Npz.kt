@@ -103,51 +103,50 @@ object NpzFile {
 
         @JvmOverloads
         fun write(name: String, data: BooleanArray, shape: IntArray = intArrayOf(data.size)) {
-            writeEntry(name) { NpyFile.allocate(data, shape) }
+            writeEntry(name, NpyFile.allocate(data, shape))
         }
 
         @JvmOverloads
         fun write(name: String, data: ByteArray, shape: IntArray = intArrayOf(data.size)) {
-            writeEntry(name) { NpyFile.allocate(data, shape) }
+            writeEntry(name, NpyFile.allocate(data, shape))
         }
 
         @JvmOverloads
         fun write(name: String, data: ShortArray, shape: IntArray = intArrayOf(data.size),
                   order: ByteOrder = ByteOrder.nativeOrder()) {
-            writeEntry(name) { NpyFile.allocate(data, shape, order) }
+            writeEntry(name, NpyFile.allocate(data, shape, order))
         }
 
         @JvmOverloads
         fun write(name: String, data: IntArray, shape: IntArray = intArrayOf(data.size),
                   order: ByteOrder = ByteOrder.nativeOrder()) {
-            writeEntry(name) { NpyFile.allocate(data, shape, order) }
+            writeEntry(name, NpyFile.allocate(data, shape, order))
         }
 
         @JvmOverloads
         fun write(name: String, data: LongArray, shape: IntArray = intArrayOf(data.size),
                   order: ByteOrder = ByteOrder.nativeOrder()) {
-            writeEntry(name) { NpyFile.allocate(data, shape, order) }
+            writeEntry(name, NpyFile.allocate(data, shape, order))
         }
 
         @JvmOverloads
         fun write(name: String, data: FloatArray, shape: IntArray = intArrayOf(data.size),
                   order: ByteOrder = ByteOrder.nativeOrder()) {
-            writeEntry(name) { NpyFile.allocate(data, shape, order) }
+            writeEntry(name, NpyFile.allocate(data, shape, order))
         }
 
         @JvmOverloads
         fun write(name: String, data: DoubleArray, shape: IntArray = intArrayOf(data.size),
                   order: ByteOrder = ByteOrder.nativeOrder()) {
-            writeEntry(name) { NpyFile.allocate(data, shape, order) }
+            writeEntry(name, NpyFile.allocate(data, shape, order))
         }
 
         @JvmOverloads
         fun write(name: String, data: Array<String>, shape: IntArray = intArrayOf(data.size)) {
-            writeEntry(name) { NpyFile.allocate(data, shape) }
+            writeEntry(name, NpyFile.allocate(data, shape))
         }
 
-        private inline fun writeEntry(name: String, block: () -> Sequence<ByteBuffer>) {
-            val chunks = block()
+        private fun writeEntry(name: String, chunks: Sequence<ByteBuffer>) {
             val entry = ZipEntry(name + ".npy").apply {
                 if (compressed) {
                     method = ZipEntry.DEFLATED

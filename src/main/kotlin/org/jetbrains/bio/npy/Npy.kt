@@ -177,7 +177,7 @@ object NpyFile {
                 'S' -> Array(size) {
                     val s = ByteArray(header.bytes)
                     get(s)
-                    String(s, Charsets.US_ASCII).trim { it == '\u0000' }
+                    String(s, Charsets.US_ASCII).trimEnd('\u0000')
                 }
                 else -> error("unsupported type: ${header.type}")
             }
