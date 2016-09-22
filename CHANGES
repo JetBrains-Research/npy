@@ -3,12 +3,15 @@ npy Changelog
 
 Here you can see the full list of changes between each npy release.
 
+Version 0.3.2
+-------------
+
 Version 0.3.1
 -------------
 
 Released on September 21th, 2016
 
-- Changed 'NpyFile.write' and 'NpzFile.Writer.write' to work in
+- Changed `NpyFile.write` and `NpzFile.Writer.write` to work in
   constant amount of memory.
 - Allowed writing arrays using a non-native byte order.
 - Dropped Guava dependency.
