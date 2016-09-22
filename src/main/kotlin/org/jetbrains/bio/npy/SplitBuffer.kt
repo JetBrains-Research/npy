@@ -1,7 +1,5 @@
 package org.jetbrains.bio.npy
 
-import com.google.common.collect.UnmodifiableIterator
-import com.google.common.primitives.*
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
@@ -32,7 +30,7 @@ internal abstract class ArraySplitBuffer<T>(
         /** Number of elements in the array. */
         private val size: Int,
         /** Byte order for the produced buffers. */
-        private val order: ByteOrder) : Iterable<ByteBuffer> {
+        private val order: ByteOrder) : Sequence<ByteBuffer> {
     abstract val bytes: Int
 
     /**
@@ -42,7 +40,7 @@ internal abstract class ArraySplitBuffer<T>(
      */
     abstract fun ByteBuffer.fill(data: T, offset: Int, size: Int)
 
-    override fun iterator() = object : UnmodifiableIterator<ByteBuffer>() {
+    override fun iterator() = object : Iterator<ByteBuffer> {
         private var offset = 0  // into the [data].
         private var step = DEFAULT_BUFFER_SIZE / bytes
         // Only allocated 'cache' if the [data] is bigger than [step].
@@ -84,7 +82,7 @@ internal class BooleanArraySplitBuffer(data: BooleanArray) :
 
 internal class ShortArraySplitBuffer(data: ShortArray, order: ByteOrder) :
         ArraySplitBuffer<ShortArray>(data, data.size, order) {
-    override val bytes: Int get() = Shorts.BYTES
+    override val bytes: Int get() = java.lang.Short.BYTES
 
     override fun ByteBuffer.fill(data: ShortArray, offset: Int, size: Int) {
         asShortBuffer().put(data, offset, size)
@@ -93,7 +91,7 @@ internal class ShortArraySplitBuffer(data: ShortArray, order: ByteOrder) :
 
 internal class IntArraySplitBuffer(data: IntArray, order: ByteOrder) :
         ArraySplitBuffer<IntArray>(data, data.size, order) {
-    override val bytes: Int get() = Ints.BYTES
+    override val bytes: Int get() = java.lang.Integer.BYTES
 
     override fun ByteBuffer.fill(data: IntArray, offset: Int, size: Int) {
         asIntBuffer().put(data, offset, size)
@@ -102,7 +100,7 @@ internal class IntArraySplitBuffer(data: IntArray, order: ByteOrder) :
 
 internal class LongArraySplitBuffer(data: LongArray, order: ByteOrder) :
         ArraySplitBuffer<LongArray>(data, data.size, order) {
-    override val bytes: Int get() = Longs.BYTES
+    override val bytes: Int get() = java.lang.Long.BYTES
 
     override fun ByteBuffer.fill(data: LongArray, offset: Int, size: Int) {
         asLongBuffer().put(data, offset, size)
@@ -111,7 +109,7 @@ internal class LongArraySplitBuffer(data: LongArray, order: ByteOrder) :
 
 internal class FloatArraySplitBuffer(data: FloatArray, order: ByteOrder) :
         ArraySplitBuffer<FloatArray>(data, data.size, order) {
-    override val bytes: Int get() = Floats.BYTES
+    override val bytes: Int get() = java.lang.Float.BYTES
 
     override fun ByteBuffer.fill(data: FloatArray, offset: Int, size: Int) {
         asFloatBuffer().put(data, offset, size)
@@ -120,7 +118,7 @@ internal class FloatArraySplitBuffer(data: FloatArray, order: ByteOrder) :
 
 internal class DoubleArraySplitBuffer(data: DoubleArray, order: ByteOrder) :
         ArraySplitBuffer<DoubleArray>(data, data.size, order) {
-    override val bytes: Int get() = Doubles.BYTES
+    override val bytes: Int get() = java.lang.Double.BYTES
 
     override fun ByteBuffer.fill(data: DoubleArray, offset: Int, size: Int) {
         asDoubleBuffer().put(data, offset, size)

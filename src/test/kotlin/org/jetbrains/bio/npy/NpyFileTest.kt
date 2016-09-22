@@ -1,6 +1,5 @@
 package org.jetbrains.bio.npy
 
-import com.google.common.primitives.Shorts
 import org.junit.Assert.assertArrayEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -100,7 +99,8 @@ class NpyFileHeaderTest {
         val header = NpyFile.Header(major = 1, minor = 0,
                                     type = 'i', bytes = 4,
                                     shape = intArrayOf(42))
-        val headerSize = NpyFile.Header.MAGIC.size + 2 + Shorts.BYTES + header.meta.size
+        val headerSize = NpyFile.Header.MAGIC.size + 2 +
+                         java.lang.Short.BYTES + header.meta.size
         assertTrue(headerSize % 16 == 0)
     }
 

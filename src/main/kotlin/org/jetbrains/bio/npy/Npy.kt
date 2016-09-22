@@ -1,10 +1,5 @@
 package org.jetbrains.bio.npy
 
-import com.google.common.base.Charsets
-import com.google.common.base.MoreObjects
-import com.google.common.base.Strings
-import com.google.common.collect.Iterables
-import com.google.common.primitives.*
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.channels.FileChannel
@@ -66,18 +61,11 @@ object NpyFile {
                 else -> impossible()
             } + metaUnpadded.length
 
-            Strings.padEnd(metaUnpadded,
-                           metaUnpadded.length + (16 - totalUnpadded % 16),
-                           ' ')
+            metaUnpadded.padEnd(metaUnpadded.length + (16 - totalUnpadded % 16), ' ')
                     .toByteArray(Charsets.US_ASCII)
         }
 
-        /**
-         * Allocates a [ByteBuffer] for the contents described by the header.
-         *
-         * The returned buffer already contains the serialized header and is
-         * guaranteed to be in correct [ByteOrder].
-         */
+        /** Allocates a [ByteBuffer] for this header. */
         fun allocate(): ByteBuffer {
             val total = MAGIC.size + 2 + when (major to minor) {
                 1 to 0 -> 2
@@ -92,7 +80,10 @@ object NpyFile {
                 put(minor.toByte())
 
                 when (major to minor) {
-                    1 to 0 -> putShort(Shorts.checkedCast(meta.size.toLong()))
+                    1 to 0 -> {
+                        check(meta.size <= Short.MAX_VALUE)
+                        putShort(meta.size.toShort())
+                    }
                     2 to 0 -> putInt(meta.size)
                 }
 
@@ -251,7 +242,7 @@ object NpyFile {
         write(path, allocate(data, shape))
     }
 
-    private fun write(path: Path, chunks: Iterable<ByteBuffer>) {
+    private fun write(path: Path, chunks: Sequence<ByteBuffer>) {
         FileChannel.open(path,
                          StandardOpenOption.WRITE,
                          StandardOpenOption.CREATE).use {
@@ -264,57 +255,55 @@ object NpyFile {
         }
     }
 
-    internal fun allocate(data: BooleanArray, shape: IntArray): Iterable<ByteBuffer> {
+    internal fun allocate(data: BooleanArray, shape: IntArray): Sequence<ByteBuffer> {
         val header = Header(order = null, type = 'b', bytes = 1, shape = shape)
-        return Iterables.concat(listOf(header.allocate()),
-                                BooleanArraySplitBuffer(data))
+        return sequenceOf(header.allocate()) + BooleanArraySplitBuffer(data)
     }
 
-    internal fun allocate(data: ByteArray, shape: IntArray): Iterable<ByteBuffer> {
+    internal fun allocate(data: ByteArray, shape: IntArray): Sequence<ByteBuffer> {
         val header = Header(order = null, type = 'i', bytes = 1, shape = shape)
-        return listOf(header.allocate(), ByteBuffer.wrap(data))
+        return sequenceOf(header.allocate()) + ByteBuffer.wrap(data)
     }
 
     internal fun allocate(data: ShortArray, shape: IntArray,
-                          order: ByteOrder): Iterable<ByteBuffer> {
-        val header = Header(order = order, type = 'i', bytes = Shorts.BYTES, shape = shape)
-        return Iterables.concat(listOf(header.allocate()),
-                                ShortArraySplitBuffer(data, order))
+                          order: ByteOrder): Sequence<ByteBuffer> {
+        val header = Header(order = order, type = 'i',
+                            bytes = java.lang.Short.BYTES, shape = shape)
+        return sequenceOf(header.allocate()) + ShortArraySplitBuffer(data, order)
     }
 
     internal fun allocate(data: IntArray, shape: IntArray,
-                          order: ByteOrder): Iterable<ByteBuffer> {
-        val header = Header(order = order, type = 'i', bytes = Ints.BYTES, shape = shape)
-        return Iterables.concat(listOf(header.allocate()),
-                                IntArraySplitBuffer(data, order))
+                          order: ByteOrder): Sequence<ByteBuffer> {
+        val header = Header(order = order, type = 'i',
+                            bytes = java.lang.Integer.BYTES, shape = shape)
+        return sequenceOf(header.allocate()) + IntArraySplitBuffer(data, order)
     }
 
     internal fun allocate(data: LongArray, shape: IntArray,
-                          order: ByteOrder): Iterable<ByteBuffer> {
-        val header = Header(order = order, type = 'i', bytes = Longs.BYTES, shape = shape)
-        return Iterables.concat(listOf(header.allocate()),
-                                LongArraySplitBuffer(data, order))
+                          order: ByteOrder): Sequence<ByteBuffer> {
+        val header = Header(order = order, type = 'i',
+                            bytes = java.lang.Long.BYTES, shape = shape)
+        return sequenceOf(header.allocate()) + LongArraySplitBuffer(data, order)
     }
 
     internal fun allocate(data: FloatArray, shape: IntArray,
-                          order: ByteOrder): Iterable<ByteBuffer> {
-        val header = Header(order = order, type = 'f', bytes = Floats.BYTES, shape = shape)
-        return Iterables.concat(listOf(header.allocate()),
-                                FloatArraySplitBuffer(data, order))
+                          order: ByteOrder): Sequence<ByteBuffer> {
+        val header = Header(order = order, type = 'f',
+                            bytes = java.lang.Float.BYTES, shape = shape)
+        return sequenceOf(header.allocate()) + FloatArraySplitBuffer(data, order)
     }
 
     internal fun allocate(data: DoubleArray, shape: IntArray,
-                          order: ByteOrder): Iterable<ByteBuffer> {
-        val header = Header(order = order, type = 'f', bytes = Doubles.BYTES, shape = shape)
-        return Iterables.concat(listOf(header.allocate()),
-                                DoubleArraySplitBuffer(data, order))
+                          order: ByteOrder): Sequence<ByteBuffer> {
+        val header = Header(order = order, type = 'f',
+                            bytes = java.lang.Double.BYTES, shape = shape)
+        return sequenceOf(header.allocate()) + DoubleArraySplitBuffer(data, order)
     }
 
-    internal fun allocate(data: Array<String>, shape: IntArray): Iterable<ByteBuffer> {
+    internal fun allocate(data: Array<String>, shape: IntArray): Sequence<ByteBuffer> {
         val bytes = data.asSequence().map { it.length }.max() ?: 0
         val header = Header(order = null, type = 'S', bytes = bytes, shape = shape)
-        return Iterables.concat(listOf(header.allocate()),
-                                StringArraySplitBuffer(data))
+        return sequenceOf(header.allocate()) + StringArraySplitBuffer(data)
     }
 }
 
@@ -342,10 +331,10 @@ class NpyArray(
     @Suppress("unchecked_cast")
     fun asStringArray() = data as Array<String>
 
-    override fun toString() = MoreObjects.toStringHelper(this)
-            .add("data", Arrays.deepToString(arrayOf(data))
+    override fun toString() = StringJoiner(", ", "NpyArray{", "}")
+            .add("data=" + Arrays.deepToString(arrayOf(data))
                     .removeSurrounding("[", "]"))
-            .add("shape", Arrays.toString(shape))
+            .add("shape=" + Arrays.toString(shape))
             .toString()
 }
 
