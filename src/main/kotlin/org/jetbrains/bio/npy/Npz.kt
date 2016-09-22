@@ -1,6 +1,5 @@
 package org.jetbrains.bio.npy
 
-import com.google.common.base.MoreObjects
 import java.io.Closeable
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -147,7 +146,7 @@ object NpzFile {
             writeEntry(name) { NpyFile.allocate(data, shape) }
         }
 
-        private inline fun writeEntry(name: String, block: () -> Iterable<ByteBuffer>) {
+        private inline fun writeEntry(name: String, block: () -> Sequence<ByteBuffer>) {
             val chunks = block()
             val entry = ZipEntry(name + ".npy").apply {
                 if (compressed) {
@@ -192,10 +191,10 @@ object NpzFile {
 
 /** A stripped down NPY header for an array in NPZ. */
 class NpzEntry(val name: String, val type: Class<*>, val shape: IntArray) {
-    override fun toString() = MoreObjects.toStringHelper(this)
-            .add("name", name)
-            .add("type", type)
-            .add("shape", Arrays.toString(shape))
+    override fun toString() = StringJoiner(", ", "NpzEntry{", "}")
+            .add("name=" + name)
+            .add("type=" + type)
+            .add("shape=" + Arrays.toString(shape))
             .toString()
 }
 

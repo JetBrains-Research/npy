@@ -1,7 +1,5 @@
 package org.jetbrains.bio.npy
 
-import com.google.common.collect.Iterators
-import com.google.common.collect.PeekingIterator
 import java.util.*
 
 /** A marker function for "impossible" `when` branches. */
@@ -92,7 +90,7 @@ private fun tokenize(s: String): PeekingIterator<SpannedToken> {
         best
     }
 
-    return Iterators.peekingIterator(tokens.iterator())
+    return PeekingIterator(tokens.iterator())
 }
 
 /** Consume a token and return it. */
@@ -108,5 +106,33 @@ private fun PeekingIterator<SpannedToken>.tryEat(expected: Token): SpannedToken?
         next()
     } else {
         null
+    }
+}
+
+// XXX doesn't support iterators which might yield null.
+private class PeekingIterator<out T>(private val it: Iterator<T>): Iterator<T> {
+    private var hasPeeked = false
+    private var item: T? = null
+
+    override fun hasNext() = hasPeeked || it.hasNext()
+
+    override fun next(): T {
+        return if (hasPeeked) {
+            val result = item
+            hasPeeked = false
+            item = null
+            result!!
+        } else {
+            it.next()
+        }
+    }
+
+    fun peek(): T {
+        if (!hasPeeked) {
+            item = it.next()
+            hasPeeked = true
+        }
+
+        return item!!
     }
 }

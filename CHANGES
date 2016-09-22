@@ -9,6 +9,7 @@ Version 0.3.1
 - Changed 'NpyFile.write' and 'NpzFile.Writer.write' to work in
   constant amount of memory.
 - Allowed writing arrays using a non-native byte order.
+- Dropped Guava dependency.
 
 Version 0.3.0
 -------------
