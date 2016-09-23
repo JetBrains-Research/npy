@@ -144,7 +144,7 @@ internal class StringArrayChunker(data: Array<String>) :
  * JVM does not allow mapping files larger that `Int.MAX_SIZE` bytes.
  * As a result, one cannot simply read a primitive array from a memory
  * mapped file via the usual [ByteBuffer] magic.
- * 
+ *
  * This class allows to incrementally initialize an array from multiple
  * buffers.
  *

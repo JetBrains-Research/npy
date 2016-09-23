@@ -171,17 +171,20 @@ class NpyFileStressTest {
         NpyFile.read(path)
     }
 
-    @Test fun readWriteRandom() = withTempFile("test", ".npy") { path ->
+    @Test fun readWriteRandom() {
         val r = Random()
         val maxMemory = Runtime.getRuntime().maxMemory() / java.lang.Double.BYTES
         val maxSize = Math.toIntExact(maxMemory / 100)  // 1%
         for (i in 0 until 10) {
             val size = r.nextInt(maxSize).toLong()
             val data = r.doubles(size).toArray()
-            NpyFile.write(path, data)
 
-            assertArrayEquals(data, NpyFile.read(path).asDoubleArray(),
-                              Math.ulp(1.0))
+            withTempFile("test", ".npy") { path ->
+                NpyFile.write(path, data)
+
+                assertArrayEquals(data, NpyFile.read(path).asDoubleArray(),
+                                  Math.ulp(1.0))
+            }
         }
     }
 
