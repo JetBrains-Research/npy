@@ -67,8 +67,13 @@ object NpzFile {
          *
          * The caller is responsible for casting the resulting array to an
          * appropriate type.
+         *
+         * @param name array name.
+         * @param step amount of bytes to use for the temporary buffer, when
+         *             reading the entry. Defaults to 1 << 18 to mimic NumPy
+         *             behaviour.
          */
-        operator fun get(name: String, step: Int = Int.MAX_VALUE): NpyArray {
+        operator fun get(name: String, step: Int = 1 shl 18): NpyArray {
             return NpyFile.read(zf.getBuffers(zf.getEntry(name + ".npy"), step))
         }
 
