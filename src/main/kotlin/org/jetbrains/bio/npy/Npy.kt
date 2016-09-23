@@ -272,6 +272,8 @@ object NpyFile {
                     it.write(chunk)
                 }
             }
+
+            it.truncate(it.position())
         }
     }
 
