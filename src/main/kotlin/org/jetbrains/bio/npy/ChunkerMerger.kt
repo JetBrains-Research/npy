@@ -175,82 +175,70 @@ internal class ByteArrayMerger(size: Int) : ArrayMerger<ByteArray>(ByteArray(siz
     }
 }
 
+/** Adjusts this buffer position after executing [block]. */
+private inline fun ByteBuffer.linked(bytes: Int, block: (ByteBuffer) -> Unit) {
+    val tick = position()
+    block(this)
+    val consumedCeiling = capacity() - tick
+    position(position() + (consumedCeiling - consumedCeiling % bytes))
+}
+
 internal class ShortArrayMerger(size: Int) : ArrayMerger<ShortArray>(ShortArray(size)) {
-    override fun invoke(chunk: ByteBuffer) {
-        with(chunk.asShortBuffer()) {
+    override fun invoke(chunk: ByteBuffer) = chunk.linked(java.lang.Short.BYTES) {
+        with(it.asShortBuffer()) {
             while (hasRemaining()) {
                 val size = remaining()
                 get(data, offset, size)
                 offset += size
             }
-        }
-
-        with(chunk) {
-            position(capacity() - capacity() % java.lang.Short.BYTES)
         }
     }
 }
 
 internal class IntArrayMerger(size: Int) : ArrayMerger<IntArray>(IntArray(size)) {
-    override fun invoke(chunk: ByteBuffer) {
-        with(chunk.asIntBuffer()) {
+    override fun invoke(chunk: ByteBuffer) = chunk.linked(java.lang.Integer.BYTES) {
+        with(it.asIntBuffer()) {
             while (hasRemaining()) {
                 val size = remaining()
                 get(data, offset, size)
                 offset += size
             }
-        }
-
-        with(chunk) {
-            position(capacity() - capacity() % java.lang.Integer.BYTES)
         }
     }
 }
 
 internal class LongArrayMerger(size: Int) : ArrayMerger<LongArray>(LongArray(size)) {
-    override fun invoke(chunk: ByteBuffer) {
-        with(chunk.asLongBuffer()) {
+    override fun invoke(chunk: ByteBuffer) = chunk.linked(java.lang.Long.BYTES) {
+        with(it.asLongBuffer()) {
             while (hasRemaining()) {
                 val size = remaining()
                 get(data, offset, size)
                 offset += size
             }
-        }
-
-        with(chunk) {
-            position(capacity() - capacity() % java.lang.Long.BYTES)
         }
     }
 }
 
 internal class FloatArrayMerger(size: Int) : ArrayMerger<FloatArray>(FloatArray(size)) {
-    override fun invoke(chunk: ByteBuffer) {
-        with(chunk.asFloatBuffer()) {
+    override fun invoke(chunk: ByteBuffer) = chunk.linked(java.lang.Float.BYTES) {
+        with(it.asFloatBuffer()) {
             while (hasRemaining()) {
                 val size = remaining()
                 get(data, offset, size)
                 offset += size
             }
-        }
-
-        with(chunk) {
-            position(capacity() - capacity() % java.lang.Float.BYTES)
         }
     }
 }
 
 internal class DoubleArrayMerger(size: Int) : ArrayMerger<DoubleArray>(DoubleArray(size)) {
-    override fun invoke(chunk: ByteBuffer) {
-        with(chunk.asDoubleBuffer()) {
+    override fun invoke(chunk: ByteBuffer) = chunk.linked(java.lang.Double.BYTES) {
+        with(it.asDoubleBuffer()) {
             while (hasRemaining()) {
                 val size = remaining()
                 get(data, offset, size)
                 offset += size
             }
-        }
-
-        with(chunk) {
-            position(capacity() - capacity() % java.lang.Double.BYTES)
         }
     }
 }
