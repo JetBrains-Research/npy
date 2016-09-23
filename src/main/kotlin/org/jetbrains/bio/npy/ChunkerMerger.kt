@@ -47,7 +47,7 @@ internal abstract class ArrayChunker<T>(
         private var step = DEFAULT_BUFFER_SIZE / bytes
         // Only allocated 'cache' if the [data] is bigger than [step].
         private val cache by lazy {
-            ByteBuffer.allocate(DEFAULT_BUFFER_SIZE).order(order)
+            ByteBuffer.allocateDirect(DEFAULT_BUFFER_SIZE).order(order)
         }
 
         override fun hasNext() = offset < size
@@ -57,7 +57,7 @@ internal abstract class ArrayChunker<T>(
             val result = if (available == step) {
                 cache.apply { rewind() }
             } else {
-                ByteBuffer.allocate(available * bytes).order(order)
+                ByteBuffer.allocateDirect(available * bytes).order(order)
             }
 
             with(result) {
