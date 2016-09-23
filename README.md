@@ -54,7 +54,7 @@ repositories {
 }
 
 dependencies {
-    compile 'org.jetbrains.bio:npy:0.3.1'
+    compile 'org.jetbrains.bio:npy:0.3.2'
 }
 
 ```

@@ -141,12 +141,12 @@ internal class StringArrayChunker(data: Array<String>) :
 /**
  * A chunked initializer for primitive array types.
  *
- * JVM does not allow mapping files larger that `Int.MAX_SIZE` bytes,
- * which is unfortunate because arrays can easily overcome that limit,
- * think e.g. a [DoubleArray] of size `Int.MAX_SIZE / 2`. Therefore,
- * it is not always possible to initialize an array by simply mapping
- * a file and doing the usual [ByteBuffer] magic. This class aims to
- * close the gap by allowing to populate an array in multiple takes.
+ * JVM does not allow mapping files larger that `Int.MAX_SIZE` bytes.
+ * As a result, one cannot simply read a primitive array from a memory
+ * mapped file via the usual [ByteBuffer] magic.
+ * 
+ * This class allows to incrementally initialize an array from multiple
+ * buffers.
  *
  * @since 0.3.2
  */
