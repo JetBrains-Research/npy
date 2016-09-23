@@ -7,6 +7,7 @@ Version 0.3.2
 -------------
 
 - Fixed reading large (> 2G) NPY and NPZ files.
+- Ensured the produced NPY file has no trailing gibberish.
 
 Version 0.3.1
 -------------
