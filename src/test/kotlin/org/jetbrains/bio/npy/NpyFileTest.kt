@@ -96,24 +96,22 @@ class NpyFileNDTest(private val shape: IntArray) {
 }
 
 class NpyFileHeaderTest {
-    @Test fun metaIsPadded() {
-        val header = NpyFile.Header(major = 1, minor = 0,
-                                    type = 'i', bytes = 4,
-                                    shape = intArrayOf(42))
-        val headerSize = NpyFile.Header.MAGIC.size + 2 +
-                         java.lang.Short.BYTES + header.meta.size
-        assertTrue(headerSize % 16 == 0)
+    @Test fun isPadded() {
+        val header = NpyFile.Header(type = 'i', bytes = 4, shape = intArrayOf(42))
+        assertEquals(1, header.major)
+        assertTrue(header.allocate().capacity() % 16 == 0)
     }
 
-    @Test fun writeRead10() = testWriteRead(1, 0)
+    @Test fun writeRead10() = testWriteRead(65536)
 
-    @Test fun writeRead20() = testWriteRead(2, 0)
+    @Test fun writeRead20() = testWriteRead(16)  // force 2.0
 
-    fun testWriteRead(major: Int, minor: Int) {
+    fun testWriteRead(boundary: Int = NpyFile.Header.NPY_10_20_SIZE_BOUNDARY) {
         withTempFile("test", ".npz") { path ->
-            val header = NpyFile.Header(major = major, minor = minor,
-                                        type = 'i', bytes = 4,
-                                        shape = intArrayOf(42))
+            val backup = NpyFile.Header.NPY_10_20_SIZE_BOUNDARY
+            NpyFile.Header.NPY_10_20_SIZE_BOUNDARY = boundary
+            val header = NpyFile.Header(type = 'i', bytes = 4, shape = intArrayOf(0))
+            NpyFile.Header.NPY_10_20_SIZE_BOUNDARY = backup
 
             FileChannel.open(path, StandardOpenOption.WRITE).use {
                 val output = header.allocate()
@@ -167,10 +165,24 @@ class NpyFileNumPyTest {
 
 class NpyFileStressTest {
     @Test(expected = IllegalStateException::class)
-    fun readRandom() = withTempFile("test", ".npy") { path ->
+    fun readRandomGibberish() = withTempFile("test", ".npy") { path ->
         val r = Random()
         Files.write(path, ByteArray(65536) { r.nextInt().toByte() })
         NpyFile.read(path)
+    }
+
+    @Test fun readWriteRandom() = withTempFile("test", ".npy") { path ->
+        val r = Random()
+        val maxMemory = Runtime.getRuntime().maxMemory() / java.lang.Double.BYTES
+        val maxSize = Math.toIntExact(maxMemory / 100)  // 1%
+        for (i in 0 until 10) {
+            val size = r.nextInt(maxSize).toLong()
+            val data = r.doubles(size).toArray()
+            NpyFile.write(path, data)
+
+            assertArrayEquals(data, NpyFile.read(path).asDoubleArray(),
+                              Math.ulp(1.0))
+        }
     }
 
     @Test fun writeReadUnaligned() = withTempFile("test", ".npy") { path ->

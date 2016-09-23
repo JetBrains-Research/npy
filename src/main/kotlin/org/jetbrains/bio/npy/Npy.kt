@@ -37,79 +37,85 @@ object NpyFile {
      * The difference between the two is the maximum size of the NPY header.
      * Version 1.0 requires it to be <=2**16 while version 2.0 allows <=2**32.
      *
-     * By default a more common 1.0 format is used.
+     * The appropriate NPY format is chosen automatically based on the
+     * header size.
      */
-    internal data class Header(val major: Int = 1, val minor: Int = 0,
-                               val order: ByteOrder? = null,
+    internal data class Header(val order: ByteOrder? = null,
                                val type: Char, val bytes: Int,
                                val shape: IntArray) {
+        /** Major version number. */
+        val major: Int
+        /** Minor version number. */
+        val minor: Int = 0
+        /** Meta-data formatted as a Python dict and 16-byte-padded. */
+        val meta: String
+
+        /** Header size in bytes. */
+        private val size: Int
+
         init {
-            require((major == 1 || major == 2) && minor == 0) {
-                "version must be 1.0 or 2.0"
+            val metaUnpadded = StringJoiner(", ", "{", "}")
+                    .add("'descr': '${order.toChar()}$type$bytes'")
+                    .add("'fortran_order': False")
+                    .add("'shape': (${shape.joinToString(",")}, )")
+                    .toString()
+
+            // According to the spec the total meta size should be
+            // evenly divisible by 16 for alignment purposes. +1 here
+            // accounts for the newline.
+            // XXX despite the fact that the HEADER_LEN is 4 bytes in
+            //     NPY2.0 the padding is always computed assuming 2 bytes.
+            val totalUnpadded = MAGIC.size + 2 + java.lang.Short.BYTES +
+                                metaUnpadded.length + 1
+            val padding = 16 - totalUnpadded % 16
+
+            var total = totalUnpadded + padding
+            if (total <= NPY_10_20_SIZE_BOUNDARY) {
+                major = 1
+            } else {
+                total += 2  // fix for the XXX above.
+                major = 2
             }
-        }
 
-        val meta: ByteArray by lazy {
-            val descr = "${order.toChar()}$type$bytes"
-            val metaUnpadded =
-                    "{'descr': '$descr', 'fortran_order': False, 'shape': (${shape.joinToString(",")}, ), }\n"
-
-            // According to the spec the total header size should be
-            // evenly divisible by 16 for alignment purposes.
-            val totalUnpadded = MAGIC.size + 2 + when (major to minor) {
-                1 to 0 -> 2
-                2 to 0 -> 4
-                else -> impossible()
-            } + metaUnpadded.length
-
-            metaUnpadded.padEnd(metaUnpadded.length + (16 - totalUnpadded % 16), ' ')
-                    .toByteArray(Charsets.US_ASCII)
+            meta = metaUnpadded + " ".repeat(padding) + '\n'
+            size = total
         }
 
         /** Allocates a [ByteBuffer] for this header. */
-        fun allocate(): ByteBuffer {
-            val total = MAGIC.size + 2 + when (major to minor) {
-                1 to 0 -> 2
-                2 to 0 -> 4
-                else   -> impossible()
-            } + meta.size
+        internal fun allocate() = ByteBuffer.allocate(size).apply {
+            order(ByteOrder.LITTLE_ENDIAN)
+            put(MAGIC)
+            put(major.toByte())
+            put(minor.toByte())
 
-            return ByteBuffer.allocateDirect(total).apply {
-                order(ByteOrder.LITTLE_ENDIAN)
-                put(MAGIC)
-                put(major.toByte())
-                put(minor.toByte())
-
-                when (major to minor) {
-                    1 to 0 -> {
-                        check(meta.size <= Short.MAX_VALUE)
-                        putShort(meta.size.toShort())
-                    }
-                    2 to 0 -> putInt(meta.size)
-                }
-
-                put(meta)
-                rewind()
+            when (major to minor) {
+                1 to 0 -> putShort(meta.length.toShort())
+                2 to 0 -> putInt(meta.length)
             }
+
+            put(meta.toByteArray(Charsets.US_ASCII))
+
+            rewind()
         }
 
         override fun equals(other: Any?) = when {
             this === other -> true
             other == null || other !is Header -> false
             else -> {
-                major == other.major && minor == other.minor &&
                 order == other.order &&
                 type == other.type && bytes == other.bytes &&
                 Arrays.equals(shape, other.shape)
             }
         }
 
-        override fun hashCode() = Objects.hash(major, minor, order, type, bytes,
-                                               Arrays.hashCode(shape))
+        override fun hashCode() = Objects.hash(order, type, bytes, Arrays.hashCode(shape))
 
         companion object {
             /** Each NPY file *must* start with this byte sequence. */
-            val MAGIC = byteArrayOf(0x93.toByte()) + "NUMPY".toByteArray()
+            internal val MAGIC = byteArrayOf(0x93.toByte()) + "NUMPY".toByteArray()
+            /** Maximum byte size of the header to be written as NPY1.0. */
+            // XXX this is a var only for testing purposes.
+            internal var NPY_10_20_SIZE_BOUNDARY = 65535
 
             @Suppress("unchecked_cast")
             fun read(input: ByteBuffer) = with(input.order(ByteOrder.LITTLE_ENDIAN)) {
@@ -128,7 +134,8 @@ object NpyFile {
                 val header = ByteArray(size)
                 get(header)
 
-                val meta = parseDict(String(header))
+                val s = String(header)
+                val meta = parseDict(s)
                 val dtype = meta["descr"] as String
                 check(!(meta["fortran_order"] as Boolean)) {
                     "Fortran-contiguous arrays are not supported"
@@ -136,9 +143,8 @@ object NpyFile {
 
                 val shape = (meta["shape"] as List<Int>).toIntArray()
                 val order = dtype[0].toByteOrder()
-                Header(major, minor, order = order,
-                       type = dtype[1], bytes = dtype.substring(2).toInt(),
-                       shape = shape)
+                Header(order = order, type = dtype[1],
+                       bytes = dtype.substring(2).toInt(), shape = shape)
             }
         }
     }

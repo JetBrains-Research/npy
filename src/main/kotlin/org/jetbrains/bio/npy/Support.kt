@@ -84,7 +84,7 @@ private fun tokenize(s: String): PeekingIterator<SpannedToken> {
 
         if (best != null) {
             leftover = leftover.substring(best.span.length)
-                    .dropWhile { it.isWhitespace() }
+                    .dropWhile(Char::isWhitespace)
         }
 
         best
