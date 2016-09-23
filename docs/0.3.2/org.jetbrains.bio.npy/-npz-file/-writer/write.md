@@ -1,0 +1,12 @@
+[0.3.2](../../../index.md) / [org.jetbrains.bio.npy](../../index.md) / [NpzFile](../index.md) / [Writer](index.md) / [write](.)
+
+# write
+
+`@JvmOverloads fun write(name: String, data: BooleanArray, shape: IntArray = intArrayOf(data.size)): Unit` [(source)](https://github.com/JetBrains-Research/npy/blob/0.3.2/src/main/kotlin/org/jetbrains/bio/npy/Npz.kt#L121)
+`@JvmOverloads fun write(name: String, data: ByteArray, shape: IntArray = intArrayOf(data.size)): Unit` [(source)](https://github.com/JetBrains-Research/npy/blob/0.3.2/src/main/kotlin/org/jetbrains/bio/npy/Npz.kt#L126)
+`@JvmOverloads fun write(name: String, data: ShortArray, shape: IntArray = intArrayOf(data.size), order: `[`ByteOrder`](http://docs.oracle.com/javase/6/docs/api/java/nio/ByteOrder.html)` = ByteOrder.nativeOrder()): Unit` [(source)](https://github.com/JetBrains-Research/npy/blob/0.3.2/src/main/kotlin/org/jetbrains/bio/npy/Npz.kt#L131)
+`@JvmOverloads fun write(name: String, data: IntArray, shape: IntArray = intArrayOf(data.size), order: `[`ByteOrder`](http://docs.oracle.com/javase/6/docs/api/java/nio/ByteOrder.html)` = ByteOrder.nativeOrder()): Unit` [(source)](https://github.com/JetBrains-Research/npy/blob/0.3.2/src/main/kotlin/org/jetbrains/bio/npy/Npz.kt#L137)
+`@JvmOverloads fun write(name: String, data: LongArray, shape: IntArray = intArrayOf(data.size), order: `[`ByteOrder`](http://docs.oracle.com/javase/6/docs/api/java/nio/ByteOrder.html)` = ByteOrder.nativeOrder()): Unit` [(source)](https://github.com/JetBrains-Research/npy/blob/0.3.2/src/main/kotlin/org/jetbrains/bio/npy/Npz.kt#L143)
+`@JvmOverloads fun write(name: String, data: FloatArray, shape: IntArray = intArrayOf(data.size), order: `[`ByteOrder`](http://docs.oracle.com/javase/6/docs/api/java/nio/ByteOrder.html)` = ByteOrder.nativeOrder()): Unit` [(source)](https://github.com/JetBrains-Research/npy/blob/0.3.2/src/main/kotlin/org/jetbrains/bio/npy/Npz.kt#L149)
+`@JvmOverloads fun write(name: String, data: DoubleArray, shape: IntArray = intArrayOf(data.size), order: `[`ByteOrder`](http://docs.oracle.com/javase/6/docs/api/java/nio/ByteOrder.html)` = ByteOrder.nativeOrder()): Unit` [(source)](https://github.com/JetBrains-Research/npy/blob/0.3.2/src/main/kotlin/org/jetbrains/bio/npy/Npz.kt#L155)
+`@JvmOverloads fun write(name: String, data: Array<String>, shape: IntArray = intArrayOf(data.size)): Unit` [(source)](https://github.com/JetBrains-Research/npy/blob/0.3.2/src/main/kotlin/org/jetbrains/bio/npy/Npz.kt#L161)
