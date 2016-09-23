@@ -82,7 +82,7 @@ object NpyFile {
         }
 
         /** Allocates a [ByteBuffer] for this header. */
-        internal fun allocate() = ByteBuffer.allocate(size).apply {
+        internal fun allocate() = ByteBuffer.allocateDirect(size).apply {
             order(ByteOrder.LITTLE_ENDIAN)
             put(MAGIC)
             put(major.toByte())
