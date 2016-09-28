@@ -171,7 +171,7 @@ class NpyFileStressTest {
         NpyFile.read(path)
     }
 
-    @Test fun readWriteRandom() {
+    @Test fun writeReadRandom() {
         val r = Random()
         val maxMemory = Runtime.getRuntime().maxMemory() / java.lang.Double.BYTES
         val maxSize = Math.toIntExact(maxMemory / 100)  // 1%

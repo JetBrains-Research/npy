@@ -6,6 +6,7 @@ import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 import org.junit.runners.Parameterized.Parameters
 import java.nio.ByteOrder
+import java.util.*
 import kotlin.test.assertEquals
 
 /**
@@ -73,7 +74,7 @@ class NpzFileTest {
 
 @RunWith(Parameterized::class)
 class NpzFileWriteReadTest(private val order: ByteOrder) {
-    @Test fun writeRead() {
+    @Test fun basic() {
         withTempFile("test", ".npz") { path ->
             NpzFile.write(path).use {
                 it.write("x_b", booleanArrayOf(true, true, true, false))
@@ -89,7 +90,7 @@ class NpzFileWriteReadTest(private val order: ByteOrder) {
         }
     }
 
-    @Test fun writeReadNested() {
+    @Test fun nested() {
         withTempFile("test", ".npz") { path ->
             NpzFile.write(path).use {
                 it.write("foo/bar/baz/x_i4", intArrayOf(1, 2, 3, 4), order = order)
@@ -102,7 +103,7 @@ class NpzFileWriteReadTest(private val order: ByteOrder) {
         }
     }
 
-    @Test fun writeReadNd() {
+    @Test fun nd() {
         withTempFile("test", ".npz") { path ->
             NpzFile.write(path).use {
                 it.write("x_i4", intArrayOf(1, 2, 3, 4), shape = intArrayOf(2, 2),
@@ -117,7 +118,7 @@ class NpzFileWriteReadTest(private val order: ByteOrder) {
         }
     }
 
-    @Test fun writeReadUnaligned() {
+    @Test fun unaligned() {
         withTempFile("test", ".npz") { path ->
             val data = IntArray(65536) { it }
             NpzFile.write(path).use {
@@ -126,6 +127,27 @@ class NpzFileWriteReadTest(private val order: ByteOrder) {
 
             NpzFile.read(path).use { npzf ->
                 assertArrayEquals(data, npzf.get("x_i4", step = 123).asIntArray())
+            }
+        }
+    }
+
+    @Test fun random() {
+        val r = Random()
+        val maxSize = 65535
+        for (i in 0 until 10) {
+            val data = Array(r.nextInt(maxSize)) {
+                // Random non-empty "ACGT" strings of length no more than 12.
+                val alphabet = "ACGT"
+                val b = ByteArray(r.nextInt(12) + 1) { alphabet[r.nextInt(4)].toByte() }
+                String(b)
+            }
+
+            withTempFile("test", ".npz") { path ->
+                NpzFile.write(path).use { it.write("data", data) }
+
+                NpzFile.read(path).use {
+                    assertArrayEquals(data, it["data"].asStringArray())
+                }
             }
         }
     }

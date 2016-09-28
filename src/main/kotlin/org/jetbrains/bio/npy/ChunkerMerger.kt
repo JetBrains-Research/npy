@@ -47,7 +47,8 @@ internal abstract class ArrayChunker<T>(
         private var step = DEFAULT_BUFFER_SIZE / bytes
         // Only allocated 'cache' if the [data] is bigger than [step].
         private val cache by lazy {
-            ByteBuffer.allocateDirect(DEFAULT_BUFFER_SIZE).order(order)
+            // [DEFAULT_BUFFER_SIZE] is rounded down to be divisible by [bytes].
+            ByteBuffer.allocateDirect(step * bytes).order(order)
         }
 
         override fun hasNext() = offset < size
@@ -247,10 +248,17 @@ internal class StringArrayMerger(size: Int, private val bytes: Int) :
         ArrayMerger<Array<String>>(Array(size) { "" }) {
 
     override fun invoke(chunk: ByteBuffer) = with(chunk) {
-        while (hasRemaining()) {
-            val s = ByteArray(bytes)
-            get(s)
-            data[offset++] = String(s, Charsets.US_ASCII).trimEnd('\u0000')
+        // Iterate until there is not more data or the next value is
+        // split between chunks, e.g.
+        //             chunk2
+        //          .........
+        //     "foo|bar\0\0\0"
+        //      ...
+        //   chunk1
+        while (remaining() >= bytes) {
+            val b = ByteArray(bytes)
+            get(b)
+            data[offset++] = String(b, Charsets.US_ASCII).trimEnd('\u0000')
         }
     }
 }
