@@ -3,6 +3,14 @@ npy Changelog
 
 Here you can see the full list of changes between each npy release.
 
+Version 0.3.3
+-------------
+
+Bugfix release, released on September 28th, 2016
+
+- Fixed tests on Windows.
+- Fixed reading and writing string arrays.
+
 Version 0.3.2
 -------------
 
