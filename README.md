@@ -4,6 +4,8 @@ npy [![Build Status](https://travis-ci.org/JetBrains-Research/npy.svg?branch=mas
 `npy` allows to read and write files in [NPY] [npy] and [NPZ] [npy] formats
 on the JVM.
 
+[npy]: http://docs.scipy.org/doc/numpy-dev/neps/npy-format.html
+
 Examples
 --------
 
@@ -42,6 +44,20 @@ NpzFile.read(path).use {
 }
 ```
 
+Limitations
+-----------
+
+The implementation is rather minimal at the moment. Specifically it does
+**not** support the following types:
+
+* unsigned integral types (treated as signed),
+* bit field,
+* complex,
+* object,
+* Unicode
+* void*
+* intersections aka types for structured arrays.
+
 Installation
 ------------
 
@@ -59,19 +75,43 @@ dependencies {
 
 ```
 
-Limitations
------------
-
-The implementation is rather minimal at the moment. Specifically it does
-**not** support the following types:
-
-* unsigned integral types (treated as signed),
-* bit field,
-* complex,
-* object,
-* Unicode
-* void*
-* intersections aka types for structured arrays.
-
 [jcenter]: https://bintray.com/bintray/jcenter
-[npy]: http://docs.scipy.org/doc/numpy-dev/neps/npy-format.html
+
+Building from source
+--------------------
+
+The build process is as simple as
+
+```bash
+$ ./gradlew assemble
+```
+
+Testing
+-------
+
+No extra configuration is required for running the tests from Gradle
+
+```bash
+$ ./gradlew test
+```
+
+However, some tests require Python and NumPy to run and will be skipped
+unless you have these.
+
+Publishing
+----------
+
+You can publish a new release with a one-liner
+
+```bash
+./gradlew clean assemble test generatePomFileForMavenJavaPublication bintrayUpload
+```
+
+Make sure to set Bintray credentials (see API key section
+[here](https://bintray.com/profile/edit)) in `$HOME/.gradle/gradle.properties`.
+
+```
+$ cat $HOME/.gradle/gradle.properties
+bintrayUser=CHANGEME
+bintrayKey=CHANGEME
+```
