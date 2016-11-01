@@ -6,6 +6,23 @@ on the JVM.
 
 [npy]: http://docs.scipy.org/doc/numpy-dev/neps/npy-format.html
 
+Installation
+------------
+
+The latest version of `npy` is available on [jCenter] [jcenter]. If you're using
+Gradle just add the following to your `build.gradle`:
+
+```gradle
+repositories {
+    jcenter()
+}
+
+dependencies {
+    compile 'org.jetbrains.bio:npy:0.3.3'
+}
+
+```
+
 Examples
 --------
 
@@ -57,23 +74,6 @@ The implementation is rather minimal at the moment. Specifically it does
 * Unicode
 * void*
 * intersections aka types for structured arrays.
-
-Installation
-------------
-
-The latest version of `npy` is available on [jCenter] [jcenter]. If you're using
-Gradle just add the following to your `build.gradle`:
-
-```gradle
-repositories {
-    jcenter()
-}
-
-dependencies {
-    compile 'org.jetbrains.bio:npy:0.3.3'
-}
-
-```
 
 [jcenter]: https://bintray.com/bintray/jcenter
 
