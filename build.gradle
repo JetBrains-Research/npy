@@ -55,7 +55,7 @@ artifacts {
 }
 
 publishing {
-    group = groupId
+    group = 'org.jetbrains.bio'
     version = project.version
 
     publications {
