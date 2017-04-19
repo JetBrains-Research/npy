@@ -3,6 +3,12 @@ npy Changelog
 
 Here you can see the full list of changes between each npy release.
 
+Version 0.3.4
+-------------
+
+- Fixed a bug with reading NPY files with `long` dimensions produced by
+  Python 2.X. Thanks to @roblovelock! See PR #6 on GitHub.
+
 Version 0.3.3
 -------------
 
