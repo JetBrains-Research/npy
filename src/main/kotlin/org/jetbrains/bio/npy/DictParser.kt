@@ -41,7 +41,7 @@ private fun parseTuple(lexer: PeekingIterator<SpannedToken>): List<Int> {
     val acc = ArrayList<Int>()
     while (lexer.peek().token != Token.RPAR) {
         val item = lexer.eat(Token.INT)
-        acc.add(item.span.toInt())
+        acc.add(item.span.filterNot { c -> c == 'L' }.toInt())
         lexer.tryEat(Token.COMMA)
     }
     lexer.eat(Token.RPAR)
@@ -58,7 +58,7 @@ private enum class Token(pattern: String) {
     SEMI(":"),
 
     TRUE("True"), FALSE("False"),
-    INT("\\d+"),
+    INT("\\d+L?"),
     STR("'[^']+'");
 
     val regex = "^$pattern".toRegex()

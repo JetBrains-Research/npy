@@ -17,6 +17,12 @@ import kotlin.test.assertTrue
 
 @RunWith(Parameterized::class)
 class NpyFileTest(private val order: ByteOrder) {
+
+    @Test fun readWin64Python2() {
+        val data = doubleArrayOf(1.0,1.0)
+        assertArrayEquals(data, NpyFile.read(Examples["win64python2.npy"]).asDoubleArray(), Math.ulp(1.0))
+    }
+
     @Test fun writeReadBooleans() = withTempFile("test", ".npy") { path ->
         val data = booleanArrayOf(true, true, true, false)
         NpyFile.write(path, data)
