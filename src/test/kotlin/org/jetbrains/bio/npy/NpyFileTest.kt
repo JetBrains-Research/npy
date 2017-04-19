@@ -17,12 +17,6 @@ import kotlin.test.assertTrue
 
 @RunWith(Parameterized::class)
 class NpyFileTest(private val order: ByteOrder) {
-
-    @Test fun readWin64Python2() {
-        val data = doubleArrayOf(1.0,1.0)
-        assertArrayEquals(data, NpyFile.read(Examples["win64python2.npy"]).asDoubleArray(), Math.ulp(1.0))
-    }
-
     @Test fun writeReadBooleans() = withTempFile("test", ".npy") { path ->
         val data = booleanArrayOf(true, true, true, false)
         NpyFile.write(path, data)
@@ -71,10 +65,10 @@ class NpyFileTest(private val order: ByteOrder) {
         NpyFile.write(path, data)
         assertArrayEquals(data, NpyFile.read(path).asStringArray())
     }
-    
+
     companion object {
         @JvmStatic
-        @Parameters(name = "{0}") 
+        @Parameters(name = "{0}")
         fun `data`(): Collection<Any> = listOf(ByteOrder.BIG_ENDIAN,
                                                ByteOrder.LITTLE_ENDIAN)
     }
@@ -136,7 +130,7 @@ class NpyFileHeaderTest {
 class NpyFileNumPyTest {
     private val hasNumPy: Boolean get() {
         try {
-            val (rc, _output) = command("python", "-c", "import numpy")
+            val (rc, _) = command("python", "-c", "import numpy")
             return rc == 0
         } catch(e: IOError) {
             return false  // No Python?
@@ -199,5 +193,15 @@ class NpyFileStressTest {
         NpyFile.write(path, data)
         assertArrayEquals(data, NpyFile.read(path, step=123).asDoubleArray(),
                           Math.ulp(1.0))
+    }
+}
+
+class NpyFileNonRegressionTest {
+    @Test fun readLongShapePython2() {
+        // See https://github.com/JetBrains-Research/npy/pull/6.
+        assertArrayEquals(
+                doubleArrayOf(1.0, 1.0),
+                NpyFile.read(Examples["win64python2.npy"]).asDoubleArray(),
+                Math.ulp(1.0))
     }
 }
