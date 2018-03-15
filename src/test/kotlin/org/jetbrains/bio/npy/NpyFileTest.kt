@@ -129,11 +129,11 @@ class NpyFileHeaderTest {
 
 class NpyFileNumPyTest {
     private val hasNumPy: Boolean get() {
-        try {
+        return try {
             val (rc, _) = command("python", "-c", "import numpy")
-            return rc == 0
+            rc == 0
         } catch(e: IOError) {
-            return false  // No Python?
+            false  // No Python?
         }
     }
 

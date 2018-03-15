@@ -20,9 +20,7 @@ import java.util.zip.ZipOutputStream
  * doesn't expose it. So for instance the array named "X" will be
  * accessibly via "X" and **not** "X.npy".
  *
- * Example:
- *
- * @sample [org.jetbrains.bio.npy.npzExample]
+ * See https://docs.scipy.org/doc/numpy-dev/neps/npy-format.html
  */
 object NpzFile {
     /**
@@ -30,7 +28,7 @@ object NpzFile {
      *
      * @since 0.2.0
      */
-    data class Reader internal constructor(val path: Path): Closeable, AutoCloseable {
+    data class Reader internal constructor(private val path: Path) : Closeable, AutoCloseable {
         private val zf = ZipFile(path.toFile(), ZipFile.OPEN_READ, Charsets.US_ASCII)
 
         /**
@@ -48,15 +46,15 @@ object NpzFile {
                     2 -> Short::class.java
                     4 -> Int::class.java
                     8 -> Long::class.java
-                    else -> impossible()
+                    else -> throw IllegalStateException("Unexpected header: ${header.bytes}")
                 }
                 'f' -> when (header.bytes) {
                     4 -> Float::class.java
                     8 -> Double::class.java
-                    else -> impossible()
+                    else -> throw IllegalStateException("Unexpected header: ${header.bytes}")
                 }
                 'S' -> String::class.java
-                else -> impossible()
+                else -> throw IllegalStateException("Unexpected header: ${header.type}")
             }
 
             NpzEntry(it.name.substringBeforeLast('.'), type, header.shape)
@@ -102,7 +100,8 @@ object NpzFile {
     }
 
     /** Opens an NPZ file at [path] for reading. */
-    @JvmStatic fun read(path: Path) = Reader(path)
+    @JvmStatic
+    fun read(path: Path) = Reader(path)
 
     /**
      * A writer for NPZ format.
@@ -111,25 +110,22 @@ object NpzFile {
      * serialized array prior to archiving. Thus each [write] call
      * requires N extra bytes of memory for an array of N bytes.
      */
-    data class Writer internal constructor(val path: Path, val compressed: Boolean) :
+    data class Writer internal constructor(private val path: Path, private val compressed: Boolean) :
             Closeable, AutoCloseable {
 
-        private val zos = ZipOutputStream(Files.newOutputStream(path).buffered(),
-                                          Charsets.US_ASCII)
+        private val zos = ZipOutputStream(Files.newOutputStream(path).buffered(), Charsets.US_ASCII)
 
         @JvmOverloads
         fun write(name: String, data: BooleanArray, shape: IntArray = intArrayOf(data.size)) {
             writeEntry(name, NpyFile.allocate(data, shape))
         }
 
-        @JvmOverloads
-        fun write(name: String, data: ByteArray, shape: IntArray = intArrayOf(data.size)) {
+        private fun write(name: String, data: ByteArray, shape: IntArray = intArrayOf(data.size)) {
             writeEntry(name, NpyFile.allocate(data, shape))
         }
 
-        @JvmOverloads
-        fun write(name: String, data: ShortArray, shape: IntArray = intArrayOf(data.size),
-                  order: ByteOrder = ByteOrder.nativeOrder()) {
+        private fun write(name: String, data: ShortArray, shape: IntArray = intArrayOf(data.size),
+                          order: ByteOrder = ByteOrder.nativeOrder()) {
             writeEntry(name, NpyFile.allocate(data, shape, order))
         }
 
@@ -139,21 +135,18 @@ object NpzFile {
             writeEntry(name, NpyFile.allocate(data, shape, order))
         }
 
-        @JvmOverloads
-        fun write(name: String, data: LongArray, shape: IntArray = intArrayOf(data.size),
-                  order: ByteOrder = ByteOrder.nativeOrder()) {
+        private fun write(name: String, data: LongArray, shape: IntArray = intArrayOf(data.size),
+                          order: ByteOrder = ByteOrder.nativeOrder()) {
             writeEntry(name, NpyFile.allocate(data, shape, order))
         }
 
-        @JvmOverloads
-        fun write(name: String, data: FloatArray, shape: IntArray = intArrayOf(data.size),
-                  order: ByteOrder = ByteOrder.nativeOrder()) {
+        private fun write(name: String, data: FloatArray, shape: IntArray = intArrayOf(data.size),
+                          order: ByteOrder = ByteOrder.nativeOrder()) {
             writeEntry(name, NpyFile.allocate(data, shape, order))
         }
 
-        @JvmOverloads
-        fun write(name: String, data: DoubleArray, shape: IntArray = intArrayOf(data.size),
-                  order: ByteOrder = ByteOrder.nativeOrder()) {
+        private fun write(name: String, data: DoubleArray, shape: IntArray = intArrayOf(data.size),
+                          order: ByteOrder = ByteOrder.nativeOrder()) {
             writeEntry(name, NpyFile.allocate(data, shape, order))
         }
 
@@ -199,39 +192,17 @@ object NpzFile {
     }
 
     /** Opens an NPZ file at [path] for writing. */
-    @JvmStatic fun write(path: Path, compressed: Boolean = false): Writer {
+    @JvmStatic
+    fun write(path: Path, compressed: Boolean = false): Writer {
         return Writer(path, compressed)
     }
 }
 
 /** A stripped down NPY header for an array in NPZ. */
-class NpzEntry(val name: String, val type: Class<*>, val shape: IntArray) {
+class NpzEntry(val name: String, val type: Class<*>, private val shape: IntArray) {
     override fun toString() = StringJoiner(", ", "NpzEntry{", "}")
             .add("name=" + name)
             .add("type=" + type)
             .add("shape=" + Arrays.toString(shape))
             .toString()
-}
-
-/** This function is for documentation purposes only. */
-internal fun npzExample() {
-    val values1 = intArrayOf(1, 2, 3, 4, 5, 6)
-    val values2 = booleanArrayOf(true, false)
-    val path = Paths.get("sample.npz")
-
-    NpzFile.write(path).use {
-        it.write("xs", values1, shape = intArrayOf(2, 3))
-        it.write("mask", values2)
-    }
-
-    NpzFile.read(path).use {
-        println(it.introspect())
-        // => [NpzEntry{name=xs, type=int, shape=[2, 3]},
-        //     NpzEntry{name=mask, type=boolean, shape=[2]}]
-
-        println("xs   = ${it["xs"]}")
-        println("mask = ${it["mask"]}")
-        // => xs   = NpyArray{data=[1, 2, 3, 4, 5, 6], shape=[2, 3]}
-        //    mask = NpyArray{data=[true, false], shape=[2]}
-    }
 }

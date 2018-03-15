@@ -24,10 +24,6 @@ import java.util.*
  *   * intersections aka types for structured arrays.
  *
  * See http://docs.scipy.org/doc/numpy-dev/neps/npy-format.html
- *
- * Example:
- *
- * @sample [org.jetbrains.bio.npy.npyExample]
  */
 object NpyFile {
     /**
@@ -46,9 +42,9 @@ object NpyFile {
         /** Major version number. */
         val major: Int
         /** Minor version number. */
-        val minor: Int = 0
+        private val minor: Int = 0
         /** Meta-data formatted as a Python dict and 16-byte-padded. */
-        val meta: String
+        private val meta: String
 
         /** Header size in bytes. */
         private val size: Int
@@ -66,7 +62,7 @@ object NpyFile {
             // XXX despite the fact that the HEADER_LEN is 4 bytes in
             //     NPY2.0 the padding is always computed assuming 2 bytes.
             val totalUnpadded = MAGIC.size + 2 + java.lang.Short.BYTES +
-                                metaUnpadded.length + 1
+                    metaUnpadded.length + 1
             val padding = 16 - totalUnpadded % 16
 
             var total = totalUnpadded + padding
@@ -103,8 +99,8 @@ object NpyFile {
             other == null || other !is Header -> false
             else -> {
                 order == other.order &&
-                type == other.type && bytes == other.bytes &&
-                Arrays.equals(shape, other.shape)
+                        type == other.type && bytes == other.bytes &&
+                        Arrays.equals(shape, other.shape)
             }
         }
 
@@ -126,8 +122,8 @@ object NpyFile {
                 val major = get().toInt()
                 val minor = get().toInt()
                 val size = when (major to minor) {
-                    1 to 0 -> getShort().toInt()
-                    2 to 0 -> getInt()
+                    1 to 0 -> short.toInt()
+                    2 to 0 -> int
                     else -> error("unsupported version: $major.$minor")
                 }
 
@@ -136,15 +132,15 @@ object NpyFile {
 
                 val s = String(header)
                 val meta = parseDict(s)
-                val dtype = meta["descr"] as String
+                val type = meta["descr"] as String
                 check(!(meta["fortran_order"] as Boolean)) {
                     "Fortran-contiguous arrays are not supported"
                 }
 
                 val shape = (meta["shape"] as List<Int>).toIntArray()
-                val order = dtype[0].toByteOrder()
-                Header(order = order, type = dtype[1],
-                       bytes = dtype.substring(2).toInt(), shape = shape)
+                val order = type[0].toByteOrder()
+                Header(order = order, type = type[1],
+                        bytes = type.substring(2).toInt(), shape = shape)
             }
         }
     }
@@ -155,7 +151,8 @@ object NpyFile {
      * The caller is responsible for coercing the resulting array to
      * an appropriate type via [NpyArray] methods.
      */
-    @JvmStatic fun read(path: Path, step: Int = Int.MAX_VALUE): NpyArray {
+    @JvmStatic
+    fun read(path: Path, step: Int = Int.MAX_VALUE): NpyArray {
         return FileChannel.open(path).use {
             var remaining = Files.size(path)
             var chunk = ByteBuffer.allocate(0)
@@ -182,7 +179,7 @@ object NpyFile {
         //     the first chunk would be gone.
         val it = PeekingIterator(chunks.iterator())
         val header = Header.read(it.peek())
-        val size = header.shape.product()
+        val size = header.shape.reduce { a, b -> a * b }
         val merger = when (header.type) {
             'b' -> {
                 check(header.bytes == 1)
@@ -216,62 +213,70 @@ object NpyFile {
      * Writes an array in NPY format to a given path.
      */
     @JvmOverloads
-    @JvmStatic fun write(path: Path, data: BooleanArray,
-                         shape: IntArray = intArrayOf(data.size)) {
+    @JvmStatic
+    fun write(path: Path, data: BooleanArray,
+              shape: IntArray = intArrayOf(data.size)) {
         write(path, allocate(data, shape))
     }
 
     @JvmOverloads
-    @JvmStatic fun write(path: Path, data: ByteArray,
-                         shape: IntArray = intArrayOf(data.size)) {
+    @JvmStatic
+    fun write(path: Path, data: ByteArray,
+              shape: IntArray = intArrayOf(data.size)) {
         write(path, allocate(data, shape))
     }
 
     @JvmOverloads
-    @JvmStatic fun write(path: Path, data: ShortArray,
-                         shape: IntArray = intArrayOf(data.size),
-                         order: ByteOrder = ByteOrder.nativeOrder()) {
+    @JvmStatic
+    fun write(path: Path, data: ShortArray,
+              shape: IntArray = intArrayOf(data.size),
+              order: ByteOrder = ByteOrder.nativeOrder()) {
         write(path, allocate(data, shape, order))
     }
 
     @JvmOverloads
-    @JvmStatic fun write(path: Path, data: IntArray,
-                         shape: IntArray = intArrayOf(data.size),
-                         order: ByteOrder = ByteOrder.nativeOrder()) {
+    @JvmStatic
+    fun write(path: Path, data: IntArray,
+              shape: IntArray = intArrayOf(data.size),
+              order: ByteOrder = ByteOrder.nativeOrder()) {
         write(path, allocate(data, shape, order))
     }
 
     @JvmOverloads
-    @JvmStatic fun write(path: Path, data: LongArray,
-                         shape: IntArray = intArrayOf(data.size),
-                         order: ByteOrder = ByteOrder.nativeOrder()) {
+    @JvmStatic
+    fun write(path: Path, data: LongArray,
+              shape: IntArray = intArrayOf(data.size),
+              order: ByteOrder = ByteOrder.nativeOrder()) {
         write(path, allocate(data, shape, order))
     }
 
     @JvmOverloads
-    @JvmStatic fun write(path: Path, data: FloatArray,
-                         shape: IntArray = intArrayOf(data.size),
-                         order: ByteOrder = ByteOrder.nativeOrder()) {
+    @JvmStatic
+    fun write(path: Path, data: FloatArray,
+              shape: IntArray = intArrayOf(data.size),
+              order: ByteOrder = ByteOrder.nativeOrder()) {
         write(path, allocate(data, shape, order))
     }
 
     @JvmOverloads
-    @JvmStatic fun write(path: Path, data: DoubleArray,
-                         shape: IntArray = intArrayOf(data.size),
-                         order: ByteOrder = ByteOrder.nativeOrder()) {
+    @JvmStatic
+    fun write(path: Path, data: DoubleArray,
+              shape: IntArray = intArrayOf(data.size),
+              order: ByteOrder = ByteOrder.nativeOrder()) {
         write(path, allocate(data, shape, order))
     }
 
     @JvmOverloads
-    @JvmStatic fun write(path: Path, data: Array<String>,
-                         shape: IntArray = intArrayOf(data.size)) {
+    @JvmStatic
+    fun write(path: Path, data: Array<String>,
+              shape: IntArray = intArrayOf(data.size)) {
         write(path, allocate(data, shape))
     }
 
     private fun write(path: Path, chunks: Sequence<ByteBuffer>) {
         FileChannel.open(path,
-                         StandardOpenOption.WRITE,
-                         StandardOpenOption.CREATE).use {
+                StandardOpenOption.WRITE,
+                StandardOpenOption.CREATE).use {
 
             for (chunk in chunks) {
                 while (chunk.hasRemaining()) {
@@ -296,35 +301,35 @@ object NpyFile {
     internal fun allocate(data: ShortArray, shape: IntArray,
                           order: ByteOrder): Sequence<ByteBuffer> {
         val header = Header(order = order, type = 'i',
-                            bytes = java.lang.Short.BYTES, shape = shape)
+                bytes = java.lang.Short.BYTES, shape = shape)
         return sequenceOf(header.allocate()) + ShortArrayChunker(data, order)
     }
 
     internal fun allocate(data: IntArray, shape: IntArray,
                           order: ByteOrder): Sequence<ByteBuffer> {
         val header = Header(order = order, type = 'i',
-                            bytes = java.lang.Integer.BYTES, shape = shape)
+                bytes = java.lang.Integer.BYTES, shape = shape)
         return sequenceOf(header.allocate()) + IntArrayChunker(data, order)
     }
 
     internal fun allocate(data: LongArray, shape: IntArray,
                           order: ByteOrder): Sequence<ByteBuffer> {
         val header = Header(order = order, type = 'i',
-                            bytes = java.lang.Long.BYTES, shape = shape)
+                bytes = java.lang.Long.BYTES, shape = shape)
         return sequenceOf(header.allocate()) + LongArrayChunker(data, order)
     }
 
     internal fun allocate(data: FloatArray, shape: IntArray,
                           order: ByteOrder): Sequence<ByteBuffer> {
         val header = Header(order = order, type = 'f',
-                            bytes = java.lang.Float.BYTES, shape = shape)
+                bytes = java.lang.Float.BYTES, shape = shape)
         return sequenceOf(header.allocate()) + FloatArrayChunker(data, order)
     }
 
     internal fun allocate(data: DoubleArray, shape: IntArray,
                           order: ByteOrder): Sequence<ByteBuffer> {
         val header = Header(order = order, type = 'f',
-                            bytes = java.lang.Double.BYTES, shape = shape)
+                bytes = java.lang.Double.BYTES, shape = shape)
         return sequenceOf(header.allocate()) + DoubleArrayChunker(data, order)
     }
 
@@ -367,9 +372,9 @@ class NpyArray(
 }
 
 private fun Char.toByteOrder() = when (this) {
-    '<'  -> ByteOrder.LITTLE_ENDIAN
-    '>'  -> ByteOrder.BIG_ENDIAN
-    '|'  -> null
+    '<' -> ByteOrder.LITTLE_ENDIAN
+    '>' -> ByteOrder.BIG_ENDIAN
+    '|' -> null
     else -> error(this)
 }
 
@@ -378,14 +383,4 @@ private fun ByteOrder?.toChar() = when (this) {
     ByteOrder.BIG_ENDIAN -> '>'
     null -> '|'
     else -> error(this)
-}
-
-/** This function is for documentation purposes only. */
-internal fun npyExample() {
-    val values = intArrayOf(1, 2, 3, 4, 5, 6)
-    val path = Paths.get("sample.npy")
-    NpyFile.write(path, values, shape = intArrayOf(2, 3))
-
-    println(NpyFile.read(path))
-    // => NpyArray{data=[1, 2, 3, 4, 5, 6], shape=[2, 3]}
 }
