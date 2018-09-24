@@ -1,11 +1,12 @@
 package org.jetbrains.bio.npy
 
 import org.junit.Assert.assertArrayEquals
+import org.junit.Assume
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 import org.junit.runners.Parameterized.Parameters
-import java.io.IOError
+import java.io.IOException
 import java.lang.ProcessBuilder.Redirect
 import java.nio.ByteOrder
 import java.nio.channels.FileChannel
@@ -132,15 +133,17 @@ class NpyFileNumPyTest {
         return try {
             val (rc, _) = command("python", "-c", "import numpy")
             rc == 0
-        } catch(e: IOError) {
-            false  // No Python?
+        } catch(e: IOException) {
+            if (e.message?.startsWith("Cannot run program \"python\"") != true) {
+                throw e
+            }
+            // no python installed
+            false
         }
     }
 
     @Test fun writeRead() {
-        if (!hasNumPy) {
-            return
-        }
+        Assume.assumeTrue(hasNumPy)
 
         withTempFile("test", ".npy") { path ->
             val data = intArrayOf(1, 2, 3, 4)
