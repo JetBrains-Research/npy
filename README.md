@@ -1,5 +1,7 @@
-npy [![Build Status](http://teamcity.jetbrains.com/app/rest/builds/buildType:(id:Epigenome_Tools_Npy)/statusIcon.svg)](http://teamcity.jetbrains.com/viewType.html?buildTypeId=Epigenome_Tools_Npy&guest=1)
+npy
 ===
+Tests: Linux [![Tests Status](http://teamcity.jetbrains.com/app/rest/builds/buildType:(id:Epigenome_Tools_Npy)/statusIcon.svg)](http://teamcity.jetbrains.com/viewType.html?buildTypeId=Epigenome_Tools_Npy&guest=1)
+Windows [![Build Status](http://teamcity.jetbrains.com/app/rest/builds/buildType:(id:Epigenome_Tools_Npy_NpyWindows)/statusIcon.svg)](http://teamcity.jetbrains.com/viewType.html?buildTypeId=Epigenome_Tools_Npy_NpyWindows&guest=1)
 
 `npy` allows to read and write files in [NPY] [npy] and [NPZ] [npy] formats
 on the JVM.
