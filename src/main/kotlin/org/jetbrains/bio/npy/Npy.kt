@@ -6,7 +6,6 @@ import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import java.util.*
 
@@ -334,7 +333,7 @@ object NpyFile {
     }
 
     internal fun allocate(data: Array<String>, shape: IntArray): Sequence<ByteBuffer> {
-        val bytes = data.asSequence().map { it.length }.max() ?: 0
+        val bytes = data.asSequence().map { it.length }.maxOrNull() ?: 0
         val header = Header(order = null, type = 'S', bytes = bytes, shape = shape)
         return sequenceOf(header.allocate()) + StringArrayChunker(data)
     }

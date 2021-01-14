@@ -1,18 +1,18 @@
 buildscript {
-    ext.kotlin_version = '1.1.+'
+    ext.kotlin_version = '1.4.21'
 
     repositories {
         jcenter()
     }
 
     dependencies {
-        classpath "org.jetbrains.dokka:dokka-gradle-plugin:0.9.+"
+        classpath "org.jetbrains.dokka:dokka-gradle-plugin:0.9.18"
     }
 }
 
 plugins {
     id 'com.jfrog.bintray' version '1.6'
-    id 'org.jetbrains.kotlin.jvm' version '1.1.1'
+    id 'org.jetbrains.kotlin.jvm' version '1.4.21'
 }
 
 apply plugin: 'maven-publish'
@@ -29,7 +29,7 @@ dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 
     testCompile "org.jetbrains.kotlin:kotlin-test:$kotlin_version"
-    testCompile 'junit:junit:4.+'
+    testCompile 'junit:junit:4.13.1'
 }
 
 dokka {
@@ -81,6 +81,6 @@ bintray {
     }
 }
 
-task wrapper(type: Wrapper) {
-    gradleVersion = '3.5'
+wrapper {
+    gradleVersion = '6.5'
 }

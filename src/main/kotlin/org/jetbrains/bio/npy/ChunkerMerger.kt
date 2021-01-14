@@ -130,7 +130,7 @@ internal class DoubleArrayChunker(data: DoubleArray, order: ByteOrder) :
 
 internal class StringArrayChunker(data: Array<String>) :
         ArrayChunker<Array<String>>(data, data.size, ByteOrder.nativeOrder()) {
-    override val bytes: Int by lazy { data.asSequence().map { it.length }.max() ?: 0 }
+    override val bytes: Int by lazy { data.asSequence().map { it.length }.maxOrNull() ?: 0 }
 
     override fun ByteBuffer.put(data: Array<String>, offset: Int, size: Int) {
         for (i in offset until offset + size) {

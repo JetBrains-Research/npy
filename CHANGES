@@ -6,8 +6,13 @@ Here you can see the full list of changes between each npy release.
 Version 0.3.4
 -------------
 
+Released on January 14th, 2021
+
 - Fixed a bug with reading NPY files with `long` dimensions produced by
   Python 2.X. Thanks to @roblovelock! See PR #6 on GitHub.
+- Fixed dependencies. The wildcard version specification made the library
+  unusable in Maven, see issue #8 on GitHub.
+- Bumped Kotlin version to 1.4.21, replaced deprecated methods.
 
 Version 0.3.3
 -------------

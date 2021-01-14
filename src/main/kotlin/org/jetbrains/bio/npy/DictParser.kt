@@ -72,7 +72,7 @@ private fun tokenize(s: String): PeekingIterator<SpannedToken> {
     val tokens = generateSequence {
         val best = Token.values().mapNotNull { token ->
             token.regex.find(leftover)?.let { SpannedToken(token, it.value) }
-        }.maxBy { it.span.length }
+        }.maxByOrNull { it.span.length }
 
         if (best != null) {
             leftover = leftover.substring(best.span.length)
