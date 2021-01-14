@@ -3,6 +3,15 @@ npy Changelog
 
 Here you can see the full list of changes between each npy release.
 
+Version 0.3.5
+-------------
+
+Bugfix release, released on January 14th, 2021
+
+- Many NpzFile.Writer methods were made private in the previous release,
+  breaking the API. This release reverts this change.
+
+
 Version 0.3.4
 -------------
 

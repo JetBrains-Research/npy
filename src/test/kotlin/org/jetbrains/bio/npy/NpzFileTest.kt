@@ -76,16 +76,28 @@ class NpzFileTest {
 class NpzFileWriteReadTest(private val order: ByteOrder) {
     @Test fun basic() {
         withTempFile("test", ".npz") { path ->
+            val booleans = booleanArrayOf(true, true, true, false)
+            val ints = intArrayOf(1, 2, 3, 4)
+            val shorts = shortArrayOf(5, 6, 7, 8)
+            val floats = floatArrayOf(9.0f, 10.0f, 11.0f, 12.0f)
+            val doubles = doubleArrayOf(13.0, 14.0, 15.0, 16.0)
+            val longs = longArrayOf(17, 18, 19, 20)
             NpzFile.write(path).use {
-                it.write("x_b", booleanArrayOf(true, true, true, false))
-                it.write("x_i4", intArrayOf(1, 2, 3, 4),
-                         order = order)
+                it.write("x_b", booleans)
+                it.write("x_i4", ints, order = order)
+                it.write("x_i2", shorts, order = order)
+                it.write("x_i8", longs, order = order)
+                it.write("x_f4", floats, order = order)
+                it.write("x_f8", doubles, order = order)
             }
 
             NpzFile.read(path).use { npzf ->
-                assertArrayEquals(booleanArrayOf(true, true, true, false),
-                                  npzf["x_b"].asBooleanArray())
-                assertArrayEquals(intArrayOf(1, 2, 3, 4), npzf["x_i4"].asIntArray())
+                assertArrayEquals(booleans, npzf["x_b"].asBooleanArray())
+                assertArrayEquals(ints, npzf["x_i4"].asIntArray())
+                assertArrayEquals(shorts, npzf["x_i2"].asShortArray())
+                assertArrayEquals(longs, npzf["x_i8"].asLongArray())
+                assertArrayEquals(floats, npzf["x_f4"].asFloatArray(), 0.0f)
+                assertArrayEquals(doubles, npzf["x_f8"].asDoubleArray(), 0.0)
             }
         }
     }

@@ -6,7 +6,6 @@ import java.nio.ByteOrder
 import java.nio.channels.Channels
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.util.*
 import java.util.zip.CRC32
 import java.util.zip.ZipEntry
@@ -120,11 +119,13 @@ object NpzFile {
             writeEntry(name, NpyFile.allocate(data, shape))
         }
 
-        private fun write(name: String, data: ByteArray, shape: IntArray = intArrayOf(data.size)) {
+        @JvmOverloads
+        fun write(name: String, data: ByteArray, shape: IntArray = intArrayOf(data.size)) {
             writeEntry(name, NpyFile.allocate(data, shape))
         }
 
-        private fun write(name: String, data: ShortArray, shape: IntArray = intArrayOf(data.size),
+        @JvmOverloads
+        fun write(name: String, data: ShortArray, shape: IntArray = intArrayOf(data.size),
                           order: ByteOrder = ByteOrder.nativeOrder()) {
             writeEntry(name, NpyFile.allocate(data, shape, order))
         }
@@ -135,17 +136,20 @@ object NpzFile {
             writeEntry(name, NpyFile.allocate(data, shape, order))
         }
 
-        private fun write(name: String, data: LongArray, shape: IntArray = intArrayOf(data.size),
+        @JvmOverloads
+        fun write(name: String, data: LongArray, shape: IntArray = intArrayOf(data.size),
                           order: ByteOrder = ByteOrder.nativeOrder()) {
             writeEntry(name, NpyFile.allocate(data, shape, order))
         }
 
-        private fun write(name: String, data: FloatArray, shape: IntArray = intArrayOf(data.size),
+        @JvmOverloads
+        fun write(name: String, data: FloatArray, shape: IntArray = intArrayOf(data.size),
                           order: ByteOrder = ByteOrder.nativeOrder()) {
             writeEntry(name, NpyFile.allocate(data, shape, order))
         }
 
-        private fun write(name: String, data: DoubleArray, shape: IntArray = intArrayOf(data.size),
+        @JvmOverloads
+        fun write(name: String, data: DoubleArray, shape: IntArray = intArrayOf(data.size),
                           order: ByteOrder = ByteOrder.nativeOrder()) {
             writeEntry(name, NpyFile.allocate(data, shape, order))
         }
