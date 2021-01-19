@@ -2,6 +2,7 @@ package org.jetbrains.bio.npy
 
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import kotlin.math.min
 
 /** Default buffer size for [ArrayChunker] subclasses. */
 private const val DEFAULT_BUFFER_SIZE = 65536
@@ -54,7 +55,7 @@ internal abstract class ArrayChunker<T>(
         override fun hasNext() = offset < size
 
         override fun next(): ByteBuffer {
-            val available = Math.min(size - offset, step)
+            val available = min(size - offset, step)
             val result = if (available == step) {
                 cache.apply { rewind() }
             } else {
@@ -94,7 +95,7 @@ internal class ShortArrayChunker(data: ShortArray, order: ByteOrder) :
 
 internal class IntArrayChunker(data: IntArray, order: ByteOrder) :
         ArrayChunker<IntArray>(data, data.size, order) {
-    override val bytes: Int get() = java.lang.Integer.BYTES
+    override val bytes: Int get() = Integer.BYTES
 
     override fun ByteBuffer.put(data: IntArray, offset: Int, size: Int) {
         asIntBuffer().put(data, offset, size)
@@ -197,7 +198,7 @@ internal class ShortArrayMerger(size: Int) : ArrayMerger<ShortArray>(ShortArray(
 }
 
 internal class IntArrayMerger(size: Int) : ArrayMerger<IntArray>(IntArray(size)) {
-    override fun invoke(chunk: ByteBuffer) = chunk.linked(java.lang.Integer.BYTES) {
+    override fun invoke(chunk: ByteBuffer) = chunk.linked(Integer.BYTES) {
         with(it.asIntBuffer()) {
             while (hasRemaining()) {
                 val size = remaining()

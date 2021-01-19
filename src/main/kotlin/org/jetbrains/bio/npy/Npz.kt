@@ -11,6 +11,7 @@ import java.util.zip.CRC32
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
+import kotlin.math.min
 
 /**
  * A ZIP file where each individual file is in NPY format.
@@ -39,21 +40,24 @@ object NpzFile {
         fun introspect() = zf.entries().asSequence().map {
             val header = NpyFile.Header.read(zf.getBuffers(it, Integer.MAX_VALUE).first())
             val type = when (header.type) {
-                'b' -> Boolean::class.java
+                'b' -> when (header.bytes) {
+                    1 -> Boolean::class.java
+                    else -> unexpectedByteNumber(header.type, header.bytes)
+                }
                 'i', 'u' -> when (header.bytes) {
                     1 -> Byte::class.java
                     2 -> Short::class.java
                     4 -> Int::class.java
                     8 -> Long::class.java
-                    else -> throw IllegalStateException("Unexpected header: ${header.bytes}")
+                    else -> unexpectedByteNumber(header.type, header.bytes)
                 }
                 'f' -> when (header.bytes) {
                     4 -> Float::class.java
                     8 -> Double::class.java
-                    else -> throw IllegalStateException("Unexpected header: ${header.bytes}")
+                    else -> unexpectedByteNumber(header.type, header.bytes)
                 }
                 'S' -> String::class.java
-                else -> throw IllegalStateException("Unexpected header: ${header.type}")
+                else -> unexpectedHeaderType(header.type)
             }
 
             NpzEntry(it.name.substringBeforeLast('.'), type, header.shape)
@@ -71,7 +75,7 @@ object NpzFile {
          *             behaviour.
          */
         operator fun get(name: String, step: Int = 1 shl 18): NpyArray {
-            return NpyFile.read(zf.getBuffers(zf.getEntry(name + ".npy"), step))
+            return NpyFile.read(zf.getBuffers(zf.getEntry("$name.npy"), step))
         }
 
         private fun ZipFile.getBuffers(entry: ZipEntry, step: Int): Sequence<ByteBuffer> {
@@ -80,7 +84,7 @@ object NpzFile {
             return generateSequence {
                 val remaining = `is`.available() + chunk.remaining()
                 if (remaining > 0) {
-                    chunk = ByteBuffer.allocate(Math.min(remaining, step)).apply {
+                    chunk = ByteBuffer.allocate(min(remaining, step)).apply {
                         // Make sure we don't miss any unaligned bytes.
                         put(chunk)
                         Channels.newChannel(`is`).read(this)
@@ -110,7 +114,7 @@ object NpzFile {
      * requires N extra bytes of memory for an array of N bytes.
      */
     data class Writer internal constructor(private val path: Path, private val compressed: Boolean) :
-            Closeable, AutoCloseable {
+        Closeable, AutoCloseable {
 
         private val zos = ZipOutputStream(Files.newOutputStream(path).buffered(), Charsets.US_ASCII)
 
@@ -125,42 +129,66 @@ object NpzFile {
         }
 
         @JvmOverloads
-        fun write(name: String, data: ShortArray, shape: IntArray = intArrayOf(data.size),
-                          order: ByteOrder = ByteOrder.nativeOrder()) {
+        fun write(
+            name: String,
+            data: ShortArray,
+            shape: IntArray = intArrayOf(data.size),
+            order: ByteOrder = ByteOrder.nativeOrder()
+        ) {
             writeEntry(name, NpyFile.allocate(data, shape, order))
         }
 
         @JvmOverloads
-        fun write(name: String, data: IntArray, shape: IntArray = intArrayOf(data.size),
-                  order: ByteOrder = ByteOrder.nativeOrder()) {
+        fun write(
+            name: String,
+            data: IntArray,
+            shape: IntArray = intArrayOf(data.size),
+            order: ByteOrder = ByteOrder.nativeOrder()
+        ) {
             writeEntry(name, NpyFile.allocate(data, shape, order))
         }
 
         @JvmOverloads
-        fun write(name: String, data: LongArray, shape: IntArray = intArrayOf(data.size),
-                          order: ByteOrder = ByteOrder.nativeOrder()) {
+        fun write(
+            name: String,
+            data: LongArray,
+            shape: IntArray = intArrayOf(data.size),
+            order: ByteOrder = ByteOrder.nativeOrder()
+        ) {
             writeEntry(name, NpyFile.allocate(data, shape, order))
         }
 
         @JvmOverloads
-        fun write(name: String, data: FloatArray, shape: IntArray = intArrayOf(data.size),
-                          order: ByteOrder = ByteOrder.nativeOrder()) {
+        fun write(
+            name: String,
+            data: FloatArray,
+            shape: IntArray = intArrayOf(data.size),
+            order: ByteOrder = ByteOrder.nativeOrder()
+        ) {
             writeEntry(name, NpyFile.allocate(data, shape, order))
         }
 
         @JvmOverloads
-        fun write(name: String, data: DoubleArray, shape: IntArray = intArrayOf(data.size),
-                          order: ByteOrder = ByteOrder.nativeOrder()) {
+        fun write(
+            name: String,
+            data: DoubleArray,
+            shape: IntArray = intArrayOf(data.size),
+            order: ByteOrder = ByteOrder.nativeOrder()
+        ) {
             writeEntry(name, NpyFile.allocate(data, shape, order))
         }
 
         @JvmOverloads
-        fun write(name: String, data: Array<String>, shape: IntArray = intArrayOf(data.size)) {
+        fun write(
+            name: String,
+            data: Array<String>,
+            shape: IntArray = intArrayOf(data.size)
+        ) {
             writeEntry(name, NpyFile.allocate(data, shape))
         }
 
         private fun writeEntry(name: String, chunks: Sequence<ByteBuffer>) {
-            val entry = ZipEntry(name + ".npy").apply {
+            val entry = ZipEntry("$name.npy").apply {
                 if (compressed) {
                     method = ZipEntry.DEFLATED
                 } else {
@@ -205,8 +233,8 @@ object NpzFile {
 /** A stripped down NPY header for an array in NPZ. */
 class NpzEntry(val name: String, val type: Class<*>, private val shape: IntArray) {
     override fun toString() = StringJoiner(", ", "NpzEntry{", "}")
-            .add("name=" + name)
-            .add("type=" + type)
-            .add("shape=" + Arrays.toString(shape))
-            .toString()
+        .add("name=$name")
+        .add("type=$type")
+        .add("shape=${shape.contentToString()}")
+        .toString()
 }

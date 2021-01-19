@@ -35,9 +35,12 @@ object NpyFile {
      * The appropriate NPY format is chosen automatically based on the
      * header size.
      */
-    internal data class Header(val order: ByteOrder? = null,
-                               val type: Char, val bytes: Int,
-                               val shape: IntArray) {
+    internal data class Header(
+        val order: ByteOrder? = null,
+        val type: Char,
+        val bytes: Int,
+        val shape: IntArray
+    ) {
         /** Major version number. */
         val major: Int
         /** Minor version number. */
@@ -50,10 +53,10 @@ object NpyFile {
 
         init {
             val metaUnpadded = StringJoiner(", ", "{", "}")
-                    .add("'descr': '${order.toChar()}$type$bytes'")
-                    .add("'fortran_order': False")
-                    .add("'shape': (${shape.joinToString(",")}, )")
-                    .toString()
+                .add("'descr': '${order.toChar()}$type$bytes'")
+                .add("'fortran_order': False")
+                .add("'shape': (${shape.joinToString(",")}, )")
+                .toString()
 
             // According to the spec the total meta size should be
             // evenly divisible by 16 for alignment purposes. +1 here
@@ -99,7 +102,7 @@ object NpyFile {
             else -> {
                 order == other.order &&
                         type == other.type && bytes == other.bytes &&
-                        Arrays.equals(shape, other.shape)
+                        shape.contentEquals(other.shape)
             }
         }
 
@@ -112,17 +115,18 @@ object NpyFile {
             // XXX this is a var only for testing purposes.
             internal var NPY_10_20_SIZE_BOUNDARY = 65535
 
-            @Suppress("unchecked_cast")
+            @Suppress("unchecked_cast", "UsePropertyAccessSyntax")
+            // property access syntax is misleading for the buffer "get" operations
             fun read(input: ByteBuffer) = with(input.order(ByteOrder.LITTLE_ENDIAN)) {
                 val buf = ByteArray(6)
                 get(buf)
-                check(Arrays.equals(MAGIC, buf)) { "bad magic: ${String(buf)}" }
+                check(MAGIC.contentEquals(buf)) { "bad magic: ${String(buf)}" }
 
                 val major = get().toInt()
                 val minor = get().toInt()
                 val size = when (major to minor) {
-                    1 to 0 -> short.toInt()
-                    2 to 0 -> int
+                    1 to 0 -> getShort().toInt()
+                    2 to 0 -> getInt()
                     else -> error("unsupported version: $major.$minor")
                 }
 
@@ -138,8 +142,7 @@ object NpyFile {
 
                 val shape = (meta["shape"] as List<Int>).toIntArray()
                 val order = type[0].toByteOrder()
-                Header(order = order, type = type[1],
-                        bytes = type.substring(2).toInt(), shape = shape)
+                Header(order = order, type = type[1], bytes = type.substring(2).toInt(), shape = shape)
             }
         }
     }
@@ -163,8 +166,8 @@ object NpyFile {
                 } else {
                     val offset = Files.size(path) - remaining
                     chunk = it.map(
-                            MapMode.READ_ONLY, offset,
-                            if (remaining > step) step.toLong() else remaining)
+                        MapMode.READ_ONLY, offset,
+                        if (remaining > step) step.toLong() else remaining)
 
                     remaining -= chunk.capacity()
                     chunk
@@ -176,32 +179,32 @@ object NpyFile {
     internal fun read(chunks: Sequence<ByteBuffer>): NpyArray {
         // XXX we have to make it peeking, because otherwise
         //     the first chunk would be gone.
-        val it = PeekingIterator(chunks.iterator())
-        val header = Header.read(it.peek())
+        val iterator = PeekingIterator(chunks.iterator())
+        val header = Header.read(iterator.peek())
         val size = header.shape.reduce { a, b -> a * b }
         val merger = when (header.type) {
-            'b' -> {
-                check(header.bytes == 1)
-                BooleanArrayMerger(size)
+            'b' -> when (header.bytes) {
+                1 -> BooleanArrayMerger(size)
+                else -> unexpectedByteNumber(header.type, header.bytes)
             }
             'u', 'i' -> when (header.bytes) {
                 1 -> ByteArrayMerger(size)
                 2 -> ShortArrayMerger(size)
                 4 -> IntArrayMerger(size)
                 8 -> LongArrayMerger(size)
-                else -> error("invalid number of bytes for ${header.type}: ${header.bytes}")
+                else -> unexpectedByteNumber(header.type, header.bytes)
             }
             'f' -> when (header.bytes) {
                 4 -> FloatArrayMerger(size)
                 8 -> DoubleArrayMerger(size)
-                else -> error("invalid number of bytes for ${header.type}: ${header.bytes}")
+                else -> unexpectedByteNumber(header.type, header.bytes)
             }
             'S' -> StringArrayMerger(size, header.bytes)
-            else -> error("unsupported type: ${header.type}")
+            else -> unexpectedHeaderType(header.type)
         }
 
-        for (chunk in it) {
-            chunk.order(header.order)
+        for (chunk in iterator) {
+            header.order?.let { chunk.order(it) }
             merger(chunk)
         }
 
@@ -214,68 +217,68 @@ object NpyFile {
     @JvmOverloads
     @JvmStatic
     fun write(path: Path, data: BooleanArray,
-              shape: IntArray = intArrayOf(data.size)) {
+        shape: IntArray = intArrayOf(data.size)) {
         write(path, allocate(data, shape))
     }
 
     @JvmOverloads
     @JvmStatic
     fun write(path: Path, data: ByteArray,
-              shape: IntArray = intArrayOf(data.size)) {
+        shape: IntArray = intArrayOf(data.size)) {
         write(path, allocate(data, shape))
     }
 
     @JvmOverloads
     @JvmStatic
     fun write(path: Path, data: ShortArray,
-              shape: IntArray = intArrayOf(data.size),
-              order: ByteOrder = ByteOrder.nativeOrder()) {
+        shape: IntArray = intArrayOf(data.size),
+        order: ByteOrder = ByteOrder.nativeOrder()) {
         write(path, allocate(data, shape, order))
     }
 
     @JvmOverloads
     @JvmStatic
     fun write(path: Path, data: IntArray,
-              shape: IntArray = intArrayOf(data.size),
-              order: ByteOrder = ByteOrder.nativeOrder()) {
+        shape: IntArray = intArrayOf(data.size),
+        order: ByteOrder = ByteOrder.nativeOrder()) {
         write(path, allocate(data, shape, order))
     }
 
     @JvmOverloads
     @JvmStatic
     fun write(path: Path, data: LongArray,
-              shape: IntArray = intArrayOf(data.size),
-              order: ByteOrder = ByteOrder.nativeOrder()) {
+        shape: IntArray = intArrayOf(data.size),
+        order: ByteOrder = ByteOrder.nativeOrder()) {
         write(path, allocate(data, shape, order))
     }
 
     @JvmOverloads
     @JvmStatic
     fun write(path: Path, data: FloatArray,
-              shape: IntArray = intArrayOf(data.size),
-              order: ByteOrder = ByteOrder.nativeOrder()) {
+        shape: IntArray = intArrayOf(data.size),
+        order: ByteOrder = ByteOrder.nativeOrder()) {
         write(path, allocate(data, shape, order))
     }
 
     @JvmOverloads
     @JvmStatic
     fun write(path: Path, data: DoubleArray,
-              shape: IntArray = intArrayOf(data.size),
-              order: ByteOrder = ByteOrder.nativeOrder()) {
+        shape: IntArray = intArrayOf(data.size),
+        order: ByteOrder = ByteOrder.nativeOrder()) {
         write(path, allocate(data, shape, order))
     }
 
     @JvmOverloads
     @JvmStatic
     fun write(path: Path, data: Array<String>,
-              shape: IntArray = intArrayOf(data.size)) {
+        shape: IntArray = intArrayOf(data.size)) {
         write(path, allocate(data, shape))
     }
 
     private fun write(path: Path, chunks: Sequence<ByteBuffer>) {
         FileChannel.open(path,
-                StandardOpenOption.WRITE,
-                StandardOpenOption.CREATE).use {
+            StandardOpenOption.WRITE,
+            StandardOpenOption.CREATE).use {
 
             for (chunk in chunks) {
                 while (chunk.hasRemaining()) {
@@ -298,37 +301,37 @@ object NpyFile {
     }
 
     internal fun allocate(data: ShortArray, shape: IntArray,
-                          order: ByteOrder): Sequence<ByteBuffer> {
+        order: ByteOrder): Sequence<ByteBuffer> {
         val header = Header(order = order, type = 'i',
-                bytes = java.lang.Short.BYTES, shape = shape)
+            bytes = java.lang.Short.BYTES, shape = shape)
         return sequenceOf(header.allocate()) + ShortArrayChunker(data, order)
     }
 
     internal fun allocate(data: IntArray, shape: IntArray,
-                          order: ByteOrder): Sequence<ByteBuffer> {
+        order: ByteOrder): Sequence<ByteBuffer> {
         val header = Header(order = order, type = 'i',
-                bytes = java.lang.Integer.BYTES, shape = shape)
+            bytes = Integer.BYTES, shape = shape)
         return sequenceOf(header.allocate()) + IntArrayChunker(data, order)
     }
 
     internal fun allocate(data: LongArray, shape: IntArray,
-                          order: ByteOrder): Sequence<ByteBuffer> {
+        order: ByteOrder): Sequence<ByteBuffer> {
         val header = Header(order = order, type = 'i',
-                bytes = java.lang.Long.BYTES, shape = shape)
+            bytes = java.lang.Long.BYTES, shape = shape)
         return sequenceOf(header.allocate()) + LongArrayChunker(data, order)
     }
 
     internal fun allocate(data: FloatArray, shape: IntArray,
-                          order: ByteOrder): Sequence<ByteBuffer> {
+        order: ByteOrder): Sequence<ByteBuffer> {
         val header = Header(order = order, type = 'f',
-                bytes = java.lang.Float.BYTES, shape = shape)
+            bytes = java.lang.Float.BYTES, shape = shape)
         return sequenceOf(header.allocate()) + FloatArrayChunker(data, order)
     }
 
     internal fun allocate(data: DoubleArray, shape: IntArray,
-                          order: ByteOrder): Sequence<ByteBuffer> {
+        order: ByteOrder): Sequence<ByteBuffer> {
         val header = Header(order = order, type = 'f',
-                bytes = java.lang.Double.BYTES, shape = shape)
+            bytes = java.lang.Double.BYTES, shape = shape)
         return sequenceOf(header.allocate()) + DoubleArrayChunker(data, order)
     }
 
@@ -341,10 +344,10 @@ object NpyFile {
 
 /** A wrapper for NPY array data. */
 class NpyArray(
-        /** Array data. */
-        val data: Any,
-        /** Array dimensions. */
-        val shape: IntArray) {
+    /** Array data. */
+    val data: Any,
+    /** Array dimensions. */
+    val shape: IntArray) {
 
     fun asBooleanArray() = data as BooleanArray
 
@@ -364,17 +367,17 @@ class NpyArray(
     fun asStringArray() = data as Array<String>
 
     override fun toString() = StringJoiner(", ", "NpyArray{", "}")
-            .add("data=" + Arrays.deepToString(arrayOf(data))
-                    .removeSurrounding("[", "]"))
-            .add("shape=" + Arrays.toString(shape))
-            .toString()
+        .add("data=" + arrayOf(data).contentDeepToString()
+            .removeSurrounding("[", "]"))
+        .add("shape=" + shape.contentToString())
+        .toString()
 }
 
 private fun Char.toByteOrder() = when (this) {
     '<' -> ByteOrder.LITTLE_ENDIAN
     '>' -> ByteOrder.BIG_ENDIAN
     '|' -> null
-    else -> error(this)
+    else -> throw IllegalStateException("unexpected byte order char $this")
 }
 
 private fun ByteOrder?.toChar() = when (this) {

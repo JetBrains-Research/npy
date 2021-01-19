@@ -107,7 +107,7 @@ class NpyFileHeaderTest {
 
     @Test fun writeRead20() = testWriteRead(16)  // force 2.0
 
-    fun testWriteRead(boundary: Int = NpyFile.Header.NPY_10_20_SIZE_BOUNDARY) {
+    private fun testWriteRead(boundary: Int = NpyFile.Header.NPY_10_20_SIZE_BOUNDARY) {
         withTempFile("test", ".npz") { path ->
             val backup = NpyFile.Header.NPY_10_20_SIZE_BOUNDARY
             NpyFile.Header.NPY_10_20_SIZE_BOUNDARY = boundary
@@ -126,20 +126,20 @@ class NpyFileHeaderTest {
             }
         }
     }
+
+
 }
 
 class NpyFileNumPyTest {
-    private val hasNumPy: Boolean get() {
-        return try {
-            val (rc, _) = command("python", "-c", "import numpy")
-            rc == 0
-        } catch(e: IOException) {
-            if (e.message?.startsWith("Cannot run program \"python\"") != true) {
-                throw e
-            }
-            // no python installed
-            false
+    private val hasNumPy: Boolean get() = try {
+        val (rc, _) = command("python", "-c", "import numpy")
+        rc == 0
+    } catch(e: IOException) {
+        if (e.message?.startsWith("Cannot run program \"python\"") != true) {
+            throw e
         }
+        // no python installed
+        false
     }
 
     @Test fun writeRead() {
