@@ -1,6 +1,7 @@
 [![JetBrains Research](https://jb.gg/badges/research.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
 Tests: Linux [![Tests Status](http://teamcity.jetbrains.com/app/rest/builds/buildType:(id:Epigenome_Tools_Npy)/statusIcon.svg)](http://teamcity.jetbrains.com/viewType.html?buildTypeId=Epigenome_Tools_Npy&guest=1)
 Windows [![Build Status](http://teamcity.jetbrains.com/app/rest/builds/buildType:(id:Epigenome_Tools_Npy_NpyWindows)/statusIcon.svg)](http://teamcity.jetbrains.com/viewType.html?buildTypeId=Epigenome_Tools_Npy_NpyWindows&guest=1)
+[![Download](https://api.bintray.com/packages/jetbrains-research/maven/npy/images/download.svg?version=0.3.3)](https://bintray.com/jetbrains-research/maven/npy/0.3.3/link)
 
 npy
 ===
