@@ -32,16 +32,10 @@ dependencies {
     testCompile 'junit:junit:4.13.1'
 }
 
-dokka {
-    moduleName = "$version"
-    outputFormat = 'gfm'
-    outputDirectory = "$rootDir/docs"
-
-    linkMapping {
-        dir = 'src/main/kotlin'
-        url = "https://github.com/JetBrains-Research/npy/blob/${version}/src/main/kotlin"
-        suffix = '#L'
-    }
+task dokkaJavadoc(type: org.jetbrains.dokka.gradle.DokkaTask) {
+    outputFormat = 'javadoc'
+    outputDirectory = javadoc.destinationDir
+    inputs.dir 'src/main/kotlin'
 }
 
 task sourcesJar(type: Jar) {
@@ -49,8 +43,13 @@ task sourcesJar(type: Jar) {
     from sourceSets.main.allSource
 }
 
+task javadocJar(type: Jar, dependsOn: dokkaJavadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
 artifacts {
-    archives sourcesJar
+    archives sourcesJar, javadocJar
 }
 
 publishing {
