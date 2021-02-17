@@ -4,13 +4,10 @@ buildscript {
     repositories {
         mavenCentral()
     }
-
-    dependencies {
-        classpath "org.jetbrains.dokka:dokka-gradle-plugin:0.9.18"
-    }
 }
 
 plugins {
+    id "org.jetbrains.dokka" version "0.9.18"
     id 'org.jetbrains.kotlin.jvm' version '1.4.21'
 }
 
