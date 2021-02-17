@@ -40,6 +40,10 @@ task dokkaJavadoc(type: org.jetbrains.dokka.gradle.DokkaTask) {
     inputs.dir 'src/main/kotlin'
 }
 
+jar {
+    archivesBaseName = 'npy'
+}
+
 task sourcesJar(type: Jar) {
     classifier = 'sources'
     from sourceSets.main.allSource
