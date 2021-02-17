@@ -2,7 +2,7 @@ buildscript {
     ext.kotlin_version = '1.4.21'
 
     repositories {
-        jcenter()
+        mavenCentral()
     }
 
     dependencies {
@@ -11,12 +11,10 @@ buildscript {
 }
 
 plugins {
-    id 'com.jfrog.bintray' version '1.8.5'
     id 'org.jetbrains.kotlin.jvm' version '1.4.21'
 }
 
 apply plugin: 'maven'
-apply plugin: 'maven-publish'
 apply plugin: 'org.jetbrains.dokka'
 apply plugin: 'signing'
 
@@ -24,7 +22,7 @@ sourceCompatibility = '1.8'
 targetCompatibility = '1.8'
 
 repositories {
-    jcenter()
+    mavenCentral()
 }
 
 dependencies {
@@ -64,34 +62,6 @@ signing {
     def signingPassword = findProperty("signingPassword")
     useInMemoryPgpKeys(signingKey, signingPassword)
     sign configurations.archives
-}
-
-publishing {
-    group = 'org.jetbrains.bio'
-    version = project.version
-
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-
-            artifact sourcesJar
-        }
-    }
-}
-
-bintray {
-    user = project.hasProperty('bintrayUser') ? project.bintrayUser : System.getenv('BINTRAY_USER')
-    key = project.hasProperty('bintrayKey') ? project.bintrayKey : System.getenv('BINTRAY_KEY')
-    publications = ['mavenJava']
-    pkg {
-        repo = 'maven'
-        name = 'npy'
-        userOrg = "jetbrains-research"
-        licenses = ['MIT']
-        version {
-            name = project.version
-        }
-    }
 }
 
 uploadArchives {
