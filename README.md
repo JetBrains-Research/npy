@@ -1,7 +1,6 @@
 [![JetBrains Research](https://jb.gg/badges/research.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
-Tests: Linux [![Tests Status](http://teamcity.jetbrains.com/app/rest/builds/buildType:(id:Epigenome_Tools_Npy)/statusIcon.svg)](http://teamcity.jetbrains.com/viewType.html?buildTypeId=Epigenome_Tools_Npy&guest=1)
-Windows [![Build Status](http://teamcity.jetbrains.com/app/rest/builds/buildType:(id:Epigenome_Tools_Npy_NpyWindows)/statusIcon.svg)](http://teamcity.jetbrains.com/viewType.html?buildTypeId=Epigenome_Tools_Npy_NpyWindows&guest=1)
-[![Download](https://api.bintray.com/packages/jetbrains-research/maven/npy/images/download.svg?version=0.3.3)](https://bintray.com/jetbrains-research/maven/npy/0.3.3/link)
+[![Tests Status](http://teamcity.jetbrains.com/app/rest/builds/buildType:(id:Epigenome_Tools_Npy)/statusIcon.svg)](http://teamcity.jetbrains.com/viewType.html?buildTypeId=Epigenome_Tools_Npy&guest=1)
+[![Maven Central](https://img.shields.io/maven-central/v/org.jetbrains.bio/npy.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22org.jetbrains.bio%22%20AND%20a:%22npy%22)
 
 npy
 ===
@@ -14,19 +13,31 @@ on the JVM.
 Installation
 ------------
 
-The latest version of `npy` is available on [jCenter] [jcenter]. If you're using
+The latest version of `npy` is available on [Maven Central] [maven-central]. If you're using
 Gradle just add the following to your `build.gradle`:
 
-```gradle
+```groovy
 repositories {
-    jcenter()
+    mavenCentral()
 }
 
 dependencies {
-    compile 'org.jetbrains.bio:npy:0.3.3'
+    compile 'org.jetbrains.bio:npy:0.3.5'
 }
 
 ```
+
+With Maven, specify the following in your `pom.xml`:
+```xml
+<dependency>
+  <groupId>org.jetbrains.bio</groupId>
+  <artifactId>npy</artifactId>
+  <version>0.3.5</version>
+</dependency>
+```
+
+The previous versions were published on Bintray. They can be downloaded
+from [GitHub Releases](https://github.com/JetBrains-Research/npy/releases).
 
 Examples
 --------
@@ -80,7 +91,7 @@ The implementation is rather minimal at the moment. Specifically it does
 * void*
 * intersections aka types for structured arrays.
 
-[jcenter]: https://bintray.com/bintray/jcenter
+[maven-central]: https://search.maven.org/artifact/org.jetbrains.bio/npy/0.3.5/jar
 
 Building from source
 --------------------
@@ -102,21 +113,3 @@ $ ./gradlew test
 
 However, some tests require Python and NumPy to run and will be skipped
 unless you have these.
-
-Publishing
-----------
-
-You can publish a new release with a one-liner
-
-```bash
-./gradlew clean assemble test generatePomFileForMavenJavaPublication bintrayUpload
-```
-
-Make sure to set Bintray credentials (see API key section
-[here](https://bintray.com/profile/edit)) in `$HOME/.gradle/gradle.properties`.
-
-```
-$ cat $HOME/.gradle/gradle.properties
-bintrayUser=CHANGEME
-bintrayKey=CHANGEME
-```
