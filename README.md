@@ -99,8 +99,11 @@ Building from source
 The build process is as simple as
 
 ```bash
-$ ./gradlew assemble
+$ ./gradlew jar
 ```
+
+Note: don't use `./gradlew assemble`, since it includes the signing of the artifacts
+and will fail if the correct credentials are not provided.
 
 Testing
 -------
