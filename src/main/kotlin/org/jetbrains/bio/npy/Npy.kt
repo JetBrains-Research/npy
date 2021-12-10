@@ -30,7 +30,7 @@ object NpyFile {
      *
      * Presently NumPy implements two version of the NPY format: 1.0 and 2.0.
      * The difference between the two is the maximum size of the NPY header.
-     * Version 1.0 requires it to be <=2**16 while version 2.0 allows <=2**32.
+     * Version 1.0 requires it to be <=2^16 while version 2.0 allows <=2^32.
      *
      * The appropriate NPY format is chosen automatically based on the
      * header size.
@@ -181,7 +181,12 @@ object NpyFile {
         //     the first chunk would be gone.
         val iterator = PeekingIterator(chunks.iterator())
         val header = Header.read(iterator.peek())
-        val size = header.shape.reduce { a, b -> a * b }
+        // exact multiplication is needed here because the total size could be greater than "Int.MAX_VALUE"
+        val size = try {
+            header.shape.reduce { a, b -> Math.multiplyExact(a, b) }
+        } catch (e: ArithmeticException) {
+            throw IllegalStateException("Array is too big for JVM", e)
+        }
         val merger = when (header.type) {
             'b' -> when (header.bytes) {
                 1 -> BooleanArrayMerger(size)

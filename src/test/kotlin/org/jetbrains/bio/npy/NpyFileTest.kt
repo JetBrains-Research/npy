@@ -126,8 +126,6 @@ class NpyFileHeaderTest {
             }
         }
     }
-
-
 }
 
 class NpyFileNumPyTest {
@@ -206,5 +204,12 @@ class NpyFileNonRegressionTest {
                 doubleArrayOf(1.0, 1.0),
                 NpyFile.read(Examples["win64python2.npy"]).asDoubleArray(),
                 Math.ulp(1.0))
+    }
+}
+
+class NpyFileSizeOverflowTest {
+    @Test(expected = IllegalStateException::class)
+    fun readSizeOverflow() {
+        NpyFile.read(Examples["overflow.npy"])
     }
 }
